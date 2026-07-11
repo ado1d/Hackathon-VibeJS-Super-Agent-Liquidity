@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import yaml
@@ -45,3 +46,18 @@ def test_render_containers_honor_dynamic_port_and_safe_nginx_substitution() -> N
 
 def test_default_openai_model_matches_render_model() -> None:
     assert Settings(_env_file=None).openai_model == "gpt-5.4-mini"
+
+
+def test_vercel_frontend_deploy_is_static_and_keeps_openai_server_side() -> None:
+    vercel = json.loads((ROOT / "vercel.json").read_text(encoding="utf-8"))
+    vercel_ignore = (ROOT / ".vercelignore").read_text(encoding="utf-8")
+    docs = (ROOT / "docs" / "vercel-deployment.md").read_text(encoding="utf-8")
+
+    assert vercel["framework"] == "vite"
+    assert vercel["installCommand"] == "cd frontend && npm ci"
+    assert vercel["buildCommand"] == "cd frontend && npm run build"
+    assert vercel["outputDirectory"] == "frontend/dist"
+    assert vercel["rewrites"] == [{"source": "/(.*)", "destination": "/index.html"}]
+    assert "backend/tests/" in vercel_ignore
+    assert "Do not add `OPENAI_API_KEY` to the Vercel frontend project." in docs
+    assert "VITE_API_BASE=https://<backend-host>/api/v1" in docs

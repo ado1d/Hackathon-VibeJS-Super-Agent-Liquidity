@@ -17,6 +17,7 @@ The application forecasts provider and shared-cash pressure, detects unusual tra
 - [Configuration](#configuration)
 - [Testing and quality checks](#testing-and-quality-checks)
 - [API and operational commands](#api-and-operational-commands)
+- [Vercel frontend deployment](#vercel-frontend-deployment)
 - [Ubuntu demo-VM deployment](#ubuntu-demo-vm-deployment)
 - [Troubleshooting](#troubleshooting)
 
@@ -412,6 +413,23 @@ docker compose logs -f postgres
 ## Render deployment
 
 The `ui-fix` branch includes a Render Blueprint for PostgreSQL, FastAPI, and the Nginx-served frontend. For secret-safe OpenAI setup, the required one-time backend URL connection, verification commands, free-tier limitations, and rollback instructions, follow [Deploy to Render with OpenAI Enabled](docs/render-deployment.md).
+
+## Vercel frontend deployment
+
+The `vercel-openai-zip-implementation` branch includes a root `vercel.json` that deploys the `frontend/` Vite app to Vercel. Keep the FastAPI backend on Render, Railway, Fly.io, or another Python host with PostgreSQL, then set:
+
+```dotenv
+VITE_API_BASE=https://<backend-host>/api/v1
+```
+
+OpenAI is enabled on the backend only:
+
+```dotenv
+AI_ENABLED=true
+OPENAI_API_KEY=<configured-in-backend-secret-store>
+```
+
+Do not put `OPENAI_API_KEY` in the Vercel frontend project. For the full step-by-step guide, see [Deploy the Frontend on Vercel with OpenAI Enabled](docs/vercel-deployment.md).
 
 ## Ubuntu demo-VM deployment
 
