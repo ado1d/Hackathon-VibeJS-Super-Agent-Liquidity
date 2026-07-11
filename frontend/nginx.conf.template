@@ -8,26 +8,23 @@ server {
 
   location = /healthz { access_log off; return 200 "ok\n"; }
 
-  # Proxy API calls to the backend.
-  # 
-  # Three things make this work on Render:
-  # 1. resolver 1.1.1.1 8.8.8.8 — public DNS (Render containers don't have
-  #    Docker's 127.0.0.11 internal DNS).
-  # 2. set $backend_upstream + proxy_pass $backend_upstream — resolves at
-  #    request time, so nginx doesn't crash at startup if BACKEND_URL is
-  #    wrong.
-  # 3. proxy_ssl_server_name on + proxy_ssl_name — sends SNI during the TLS
-  #    handshake. Without this, Render's load balancer rejects the connection
-  #    with "SSL alert number 40" because it doesn't know which backend to
-  #    route to.
+  # Proxy /api/ calls to the backend service.
   #
-  # The 15-extract-backend-host.sh script (runs before envsubst) strips the
-  # trailing slash from BACKEND_URL and extracts BACKEND_HOST for SNI.
+  # How this works on Render:
+  #   1. resolver 1.1.1.1 8.8.8.8 — public DNS (Render has no Docker DNS).
+  #   2. set $backend_upstream + proxy_pass $backend_upstream — defers DNS
+  #      resolution to request time so nginx doesn't crash at startup.
+  #   3. proxy_ssl_server_name on — nginx auto-sends SNI using the host
+  #      portion of the proxy_pass URL. No need for proxy_ssl_name or a
+  #      separate host-extraction script.
+  #
+  # IMPORTANT: Set BACKEND_URL WITHOUT a trailing slash, e.g.
+  #   https://super-agent-backend-xxxx.onrender.com
+  # (not https://super-agent-backend-xxxx.onrender.com/)
   location /api/ {
     resolver 1.1.1.1 8.8.8.8 valid=30s ipv6=off;
     set $backend_upstream "${BACKEND_URL}";
     proxy_ssl_server_name on;
-    proxy_ssl_name "${BACKEND_HOST}";
     proxy_pass $backend_upstream/api/;
     proxy_set_header Host $host;
     proxy_set_header X-Request-ID $request_id;
