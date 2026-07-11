@@ -1,355 +1,267 @@
-# Render Deployment Guide
+# Deploy to Render with OpenAI Enabled
 
-> Deploy the Super Agent Liquidity Platform to Render in ~15 minutes.
+This guide deploys the synthetic-data demo from the `ui-fix` branch as three Render resources:
 
----
+1. Render Postgres
+2. FastAPI backend web service
+3. React/Nginx frontend web service
 
-## Prerequisites
+The frontend calls `/api/v1` on its own origin. Nginx then proxies that request to the backend's public Render URL. This is necessary on the free tier because free web services cannot receive private-network traffic.
 
-- A GitHub account with push access to the repo
-- A Render account (sign up at <https://render.com> with GitHub)
-- (Optional) An OpenAI API key if you want AI features
+## 1. Prerequisites
 
----
+- GitHub repository access.
+- A Render account connected to GitHub.
+- An OpenAI Platform API key with API billing/credits enabled.
+- The corrected `ui-fix` branch pushed to GitHub.
 
-## Architecture on Render
+Keep the API key private. Do not place it in `.env.example`, `render.yaml`, a Vite variable, GitHub, screenshots, or chat. `render.yaml` declares `OPENAI_API_KEY` with `sync: false`, so Render prompts for the secret without committing it.
 
-```
-┌──────────────────────────────────────────────────────────┐
-│  Render                                                   │
-│                                                           │
-│  ┌──────────────────┐         ┌────────────────────┐     │
-│  │  Web Service     │  ─────▶ │  PostgreSQL        │     │
-│  │  (backend)       │         │  (managed, free)   │     │
-│  │  FastAPI + Uvicorn│        │                    │     │
-│  │  Port 8000       │         └────────────────────┘     │
-│  └──────────────────┘                                    │
-│           ▲                                              │
-│           │  proxies /api/*                              │
-│  ┌──────────────────┐                                    │
-│  │  Web Service     │                                    │
-│  │  (frontend)      │                                    │
-│  │  Nginx + Vite SPA│                                    │
-│  │  Port 8080       │                                    │
-│  └──────────────────┘                                    │
-└──────────────────────────────────────────────────────────┘
-```
+The configured AI model is `gpt-5.4-mini`, using the Responses API and Pydantic structured outputs. The application sends only allow-listed synthetic alert fields and sets `store=false`.
 
-Three services:
-1. **PostgreSQL** — managed database (free tier, 90 days)
-2. **Backend** — Docker container running FastAPI
-3. **Frontend** — Docker container running Nginx that serves the SPA and proxies API calls to the backend
+## 2. Review the Blueprint
 
----
+The root [render.yaml](../render.yaml) currently specifies:
 
-## Step 1 — Push the code to GitHub
+- Branch: `ui-fix`
+- Region: Singapore
+- Postgres: free, PostgreSQL 16
+- Backend and frontend: free web services
+- AI: enabled
+- Model: `gpt-5.4-mini`
+- API key: prompted as a secret
+- Auto-deploy: only after linked checks pass
 
-Make sure these files are in your repo:
+If you merge `ui-fix` into `main`, update both `branch: ui-fix` entries to `branch: main` before syncing the Blueprint.
 
-```
-render.yaml                          ← Render Blueprint
-backend/Dockerfile                   ← Backend container
-backend/.dockerignore                ← Keeps backend image small
-frontend/Dockerfile                  ← Frontend container (uses nginx.conf.template)
-frontend/.dockerignore               ← Keeps frontend image small
-frontend/nginx.conf.template         ← Nginx config with ${BACKEND_URL} placeholder
-.env.example                         ← Reference for all env vars
-```
+## 3. Create the Blueprint
 
-If you just cloned this zip, commit and push:
+1. Sign in to the [Render Dashboard](https://dashboard.render.com/).
+2. Select **New +** and then **Blueprint**.
+3. Connect `ado1d/Hackathon-VibeJS-Super-Agent-Liquidity`.
+4. Select the `ui-fix` branch if Render asks which branch contains the Blueprint.
+5. Confirm Render detects `render.yaml`.
+6. When prompted for `OPENAI_API_KEY`, paste the key from the OpenAI Platform.
+7. Apply the Blueprint.
+
+Render creates:
+
+- `super-agent-db`
+- `super-agent-backend`
+- `super-agent-frontend`
+
+The backend container automatically runs Alembic migrations, seeds the healthy baseline only when the database is empty, and then starts Uvicorn on Render's assigned `PORT`.
+
+## 4. Connect the frontend proxy
+
+Render cannot insert another free web service's public URL into a Blueprint variable automatically. The initial frontend therefore uses `https://placeholder.invalid` and its `/api` calls return `502` until this one-time step is completed.
+
+1. Open `super-agent-backend` in Render.
+2. Copy its public URL, for example:
+
+   ```text
+   https://super-agent-backend-abcd.onrender.com
+   ```
+
+3. Open `super-agent-frontend` and select **Environment**.
+4. Set `BACKEND_URL` to that URL with no trailing slash.
+5. Choose **Save and deploy**.
+
+The frontend entrypoint validates the URL, preserves Nginx's own runtime variables, derives the backend hostname for TLS SNI and the HTTP `Host` header, and generates the final Nginx configuration.
+
+## 5. Set the exact frontend origin
+
+The same-origin proxy does not require browser CORS for normal application traffic. Still, configure the backend correctly if you use its public API or Swagger UI from a browser:
+
+1. Copy the frontend URL, for example:
+
+   ```text
+   https://super-agent-frontend-wxyz.onrender.com
+   ```
+
+2. Open `super-agent-backend` and select **Environment**.
+3. Replace `CORS_ORIGINS=https://placeholder.invalid` with the exact frontend origin.
+4. Do not add a trailing slash.
+5. Choose **Save and deploy**.
+
+For multiple trusted origins, use a comma-separated list.
+
+## 6. Verify backend and database health
+
+Set local shell variables to your real URLs:
 
 ```bash
-cd Hackathon-VibeJS-Super-Agent-Liquidity
-git add -A
-git commit -m "deploy: add render.yaml, .dockerignore, nginx template, UI improvements"
-git push origin main
+BACKEND=https://super-agent-backend-abcd.onrender.com
+FRONTEND=https://super-agent-frontend-wxyz.onrender.com
 ```
 
----
-
-## Step 2 — Create the Render Blueprint
-
-1. Go to <https://dashboard.render.com>
-2. Sign in with GitHub
-3. Click **New +** → **Blueprint**
-4. Select your repository: `ado1d/Hackathon-VibeJS-Super-Agent-Liquidity`
-5. Render detects `render.yaml` and shows 3 resources:
-   - `super-agent-db` (PostgreSQL, free)
-   - `super-agent-backend` (Web Service, free)
-   - `super-agent-frontend` (Web Service, free)
-6. Click **Apply**
-
-Render provisions the database first (~2 min), then builds and deploys the backend (~5 min), then the frontend (~4 min).
-
----
-
-## Step 3 — Get your service URLs
-
-After all 3 services show **Live** status:
-
-1. Open **super-agent-backend** → copy the URL (e.g. `https://super-agent-backend-abc123.onrender.com`)
-2. Open **super-agent-frontend** → copy the URL (e.g. `https://super-agent-frontend-xyz789.onrender.com`)
-
-You'll need these for the next step.
-
----
-
-## Step 4 — Connect the frontend to the backend
-
-The frontend Nginx needs to know where the backend is.
-
-1. Open **super-agent-frontend** → **Environment**
-2. Find the `BACKEND_URL` variable
-3. Change it from `http://backend:8000` to your actual backend URL:
-   ```
-   https://super-agent-backend-abc123.onrender.com
-   ```
-4. Save → Render redeploys the frontend automatically
-
-### Also update CORS on the backend
-
-1. Open **super-agent-backend** → **Environment**
-2. Find `CORS_ORIGINS`
-3. Change it from `*` to your frontend URL:
-   ```
-   https://super-agent-frontend-xyz789.onrender.com
-   ```
-4. Save → the backend restarts automatically
-
----
-
-## Step 5 — Verify the deployment
+Then verify:
 
 ```bash
-# Replace with your actual URLs
-BACKEND=https://super-agent-backend-abc123.onrender.com
-FRONTEND=https://super-agent-frontend-xyz789.onrender.com
+curl -fsS "$BACKEND/api/v1/health"
+curl -fsS "$BACKEND/api/v1/ready"
+curl -fsS "$FRONTEND/healthz"
+```
 
-# 1. Backend health check
-curl $BACKEND/api/v1/health
-# Expected: {"status":"ok"}
+Expected responses include:
 
-# 2. Backend database check
-curl $BACKEND/api/v1/ready
-# Expected: {"status":"ready","database":"reachable"}
+```json
+{"status":"ok"}
+```
 
-# 3. Login
-curl -X POST $BACKEND/api/v1/auth/login \
+```json
+{"status":"ready","database":"reachable"}
+```
+
+If readiness fails, inspect the backend deploy log for migration or database connection errors. Render supplies a `postgresql://` connection string; the application normalizes it to SQLAlchemy's async `postgresql+psycopg://` form.
+
+## 7. Verify authentication and load a scenario
+
+Open the frontend URL and sign in as:
+
+```text
+username: admin
+password: demo-pass
+```
+
+Then:
+
+1. Open **Demo control**.
+2. Load Scenario B or D.
+3. Open **Operations** from the sidebar.
+4. Open an alert.
+
+The credentials are synthetic demo credentials and are intentionally public. Do not position this deployment as a production or regulated system. Restrict or remove public access if the scenario controls should not be available to everyone.
+
+## 8. Verify OpenAI configuration
+
+First obtain a JWT without printing the API key:
+
+```bash
+TOKEN=$(curl -fsS -X POST "$BACKEND/api/v1/auth/login" \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"demo-pass"}'
-# Expected: {"access_token":"...","user":{...}}
-
-# 4. Frontend loads
-curl -sI $FRONTEND | head -1
-# Expected: HTTP/2 200
+  -d '{"username":"admin","password":"demo-pass"}' \
+  | python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])')
 ```
 
-Open the frontend URL in your browser:
-1. Sign in as `admin` / `demo-pass`
-2. Go to **Demo control**
-3. Click **Load Scenario D**
-4. Go back to **Home** → see alerts in the priority queue
-5. Click an alert → claim → acknowledge → escalate → resolve
-6. Sign out, sign in as `risk` → see the escalated alert
+Check status:
 
-If all of that works, you're live. 🎉
-
----
-
-## Step 6 — (Optional) Enable AI features
-
-1. Open **super-agent-backend** → **Environment**
-2. Set `AI_ENABLED` to `true`
-3. Set `OPENAI_API_KEY` to your OpenAI key (`sk-...`)
-4. Set `OPENAI_MODEL` to `gpt-4o-mini` (cheapest, ~$0.15/M tokens)
-5. Save → backend restarts
-
-Verify AI is enabled:
 ```bash
-curl -H "Authorization: Bearer <your-token>" $BACKEND/api/v1/ai/status
-# Expected: {"enabled":true,"model":"gpt-4o-mini","features":["translate","summarize","recommendations"]}
+curl -fsS "$BACKEND/api/v1/ai/status" \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-Now when you open an alert, you'll see an **AI-assisted explanation** panel with three buttons: Translate, Summarize, Advisory steps.
+Expected:
 
----
-
-## Step 7 — (Optional) Set up auto-deploy
-
-By default, Render auto-deploys when you push to `main`. To change this:
-
-1. Open each service → **Settings** → **Auto-Deploy**
-2. Toggle on/off as needed
-3. You can also create a **Pull Request Preview** environment: **Settings** → **Pull Request Previews** → enable
-
----
-
-## Cost on Render Free Tier
-
-| Resource | Free tier | What happens when exceeded |
-|---|---|---|
-| Web Service (backend) | 750 hours/month, sleeps after 15 min idle | First request after sleep takes ~30s to wake |
-| Web Service (frontend) | 750 hours/month, sleeps after 15 min idle | Same |
-| PostgreSQL | 90 days free, then $7/month | Database pauses; email warnings at 80/90 days |
-| Bandwidth | 100 GB/month combined | Soft cap — Render emails you |
-| Builds | 500 minutes/month | Soft cap |
-
-**Total for hackathon demo: $0**
-
-For always-on production: upgrade both web services to **Starter** ($7/month each = $14/month) + managed Postgres ($7/month) = **$21/month**.
-
----
-
-## Troubleshooting
-
-### "Backend won't start — migration fails"
-
-The `DATABASE_URL` must start with `postgresql+psycopg://` (not `postgres://`). Render's "connectionString" property outputs `postgres://` — the `render.yaml` Blueprint handles this automatically by using `fromDatabase`, but if you set it manually, prefix it correctly.
-
-**Fix:** Check **super-agent-backend** → **Environment** → `DATABASE_URL`. It should look like:
-```
-postgresql+psycopg://super_agent:password@host:5432/super_agent
+```json
+{
+  "enabled": true,
+  "model": "gpt-5.4-mini",
+  "features": ["translate", "summarize", "recommendations"],
+  "core_workflows_available": true
+}
 ```
 
-### "Frontend loads but API calls return 502"
+Status proves that the feature flag and key are present. To prove that a live provider call succeeds:
 
-The frontend Nginx can't reach the backend. Check:
+1. Load Scenario B in the UI.
+2. Open an alert as Admin, Operations, or Risk.
+3. Click **Summarize** or **Advisory steps**.
+4. Inspect the displayed source.
 
-1. `BACKEND_URL` env var on the frontend service is set to the **public** backend URL (not `http://backend:8000`)
-2. The backend is actually running (check **super-agent-backend** → **Logs**)
-3. The backend URL has no trailing slash
+The source must be `openai` on the first successful call. `cache` is valid on subsequent identical calls. `deterministic_fallback` means the application remained safe, but the live OpenAI request failed or its output did not pass validation/safety filtering.
 
-### "CORS error in browser console"
+## 9. AI environment variables
 
-The frontend origin isn't in the backend's `CORS_ORIGINS` list.
+Configure these only on `super-agent-backend`:
 
-**Fix:** Set `CORS_ORIGINS` on the backend to your exact frontend URL:
-```
-https://super-agent-frontend-xyz789.onrender.com
-```
-No trailing slash. Comma-separated for multiple origins.
+| Variable | Render value |
+| --- | --- |
+| `AI_ENABLED` | `true` |
+| `OPENAI_API_KEY` | Secret value entered in Render |
+| `OPENAI_MODEL` | `gpt-5.4-mini` |
+| `AI_MAX_OUTPUT_TOKENS` | `500` |
+| `AI_TIMEOUT_SECONDS` | `12` |
+| `AI_CACHE_TTL_MINUTES` | `60` |
+| `AI_INPUT_COST_PER_MILLION` | `0.75` |
+| `AI_OUTPUT_COST_PER_MILLION` | `4.50` |
+| `AI_PRICING_VERSION` | `openai-gpt-5.4-mini-2026-07-11` |
 
-### "401 Unauthorized on every API call"
+Pricing fields are reporting configuration, not billing enforcement. Confirm current OpenAI pricing before future deployments and update the rates and version label together.
 
-Your JWT expired (8-hour lifetime) or the backend restarted with a new `JWT_SECRET`.
+Never create a variable such as `VITE_OPENAI_API_KEY`. Vite values are compiled into browser assets and are public.
 
-**Fix:** Sign out and sign back in.
+## 10. Troubleshooting
 
-### "429 Too Many Requests"
+### Frontend returns 502 for `/api`
 
-You hit the rate limit (50 API calls/minute, or 5 login attempts/minute).
+- Confirm `BACKEND_URL` is the backend's public HTTPS URL.
+- Remove any trailing slash.
+- Confirm backend health succeeds directly.
+- Redeploy the frontend after changing the value.
 
-**Fix:** Wait 60 seconds. For demo purposes, you can temporarily set `RATE_LIMIT_ENABLED=false` on the backend.
+### Frontend container does not start
 
-### "AI features return 503"
+Check its logs for entrypoint validation errors. `BACKEND_URL` must start with `http://` or `https://`, and `PORT` must be numeric.
 
-AI is not configured. Either:
-- `AI_ENABLED=false` (default)
-- `OPENAI_API_KEY` is empty
-- `OPENAI_MODEL` is set to a non-existent model (must be `gpt-4o-mini`, `gpt-4o`, or `gpt-4-turbo`)
+### AI status is disabled
 
-**Fix:** Set all three env vars on the backend and restart.
+- Confirm `AI_ENABLED=true`.
+- Confirm `OPENAI_API_KEY` exists on the backend service and is not blank.
+- Use **Save and deploy** after changing the environment.
 
-### "Backend sleeps and the first request is slow"
+### AI result uses `deterministic_fallback`
 
-Render free tier sleeps web services after 15 minutes of inactivity. The first request after sleep takes ~30 seconds to wake up.
+- Confirm the OpenAI account has API billing/credits and model access.
+- Confirm `OPENAI_MODEL=gpt-5.4-mini`.
+- Inspect backend logs for timeouts or provider status errors.
+- Confirm the structured response was not rejected by the deterministic safety filter.
 
-**Fix:** Upgrade to **Starter** plan ($7/month) for always-on. Or use a free uptime monitor like <https://uptimerobot.com> to ping `/api/v1/health` every 10 minutes and keep the service warm.
+The fallback is expected reliability behavior and is never cached as a provider result.
 
-### "Database will expire in 90 days"
+### Backend migration fails
 
-Render's free PostgreSQL is free for 90 days only. After that it pauses.
+- Confirm `DATABASE_URL` comes from `super-agent-db` through `fromDatabase`.
+- Confirm the database has not expired.
+- Inspect the first failing Alembic revision in backend logs.
 
-**Fix:** Upgrade to a paid Postgres plan ($7/month), or redeploy on a fresh Render account, or migrate to a self-hosted VPS.
+### Login receives 429
 
----
+The limits are five login attempts per minute per client IP and 50 authenticated API requests per minute per JWT subject. Wait for the `Retry-After` duration. Do not disable rate limiting on a public deployment.
 
-## Environment Variables Reference
+## 11. Free-tier limitations
 
-| Variable | Required | Default | Purpose |
-|---|---|---|---|
-| `DATABASE_URL` | ✅ | — | PostgreSQL connection string (auto-set by Render) |
-| `JWT_SECRET` | ✅ | — | JWT signing secret (auto-generated by Render Blueprint) |
-| `APP_ENV` | ❌ | `demo` | `production` for deployed environments |
-| `CORS_ORIGINS` | ✅ | `*` | Comma-separated allowed origins (set to your frontend URL) |
-| `AI_ENABLED` | ❌ | `false` | `true` to enable OpenAI features |
-| `OPENAI_API_KEY` | ❌ | — | Required if `AI_ENABLED=true` |
-| `OPENAI_MODEL` | ❌ | `gpt-4o-mini` | Valid: `gpt-4o-mini`, `gpt-4o`, `gpt-4-turbo` |
-| `RATE_LIMIT_ENABLED` | ❌ | `true` | Set `false` to disable rate limiting |
-| `RATE_LIMIT_TRUST_PROXY_HEADERS` | ❌ | `true` | Trust `X-Forwarded-For` (needed on Render) |
-| `BACKEND_URL` | ✅ (frontend) | `http://backend:8000` | The backend's public URL, used by Nginx |
-| `VITE_API_BASE` | ❌ | `/api/v1` | API base path (built into the SPA at build time) |
+As of July 2026:
 
----
+- A free web service spins down after 15 minutes without inbound HTTP or WebSocket activity and can take about one minute to start again.
+- Free web services share 750 workspace instance hours per month.
+- A free Postgres database has 1 GB storage and expires after 30 days, followed by a limited upgrade grace period.
+- Free Postgres has no backups or managed connection pooling.
+- The filesystem is ephemeral; `data/validation/latency.json` does not persist across restarts.
+- OpenAI API usage is billed separately from Render and `gpt-5.4-mini` is not available on the OpenAI API free tier.
 
-## Manual Deployment (without Blueprint)
+For a stable demonstration, use paid always-on web services and paid Postgres, or schedule the demo soon after deployment and preserve exported evidence elsewhere.
 
-If you prefer to create services manually instead of using `render.yaml`:
+## 12. Rollback and key rotation
 
-### 1. Create PostgreSQL
+Render free web services retain only the two most recent previous deploys for rollback. To roll back, open the service's **Deploys** page and select a known-good deploy.
 
-1. **New +** → **PostgreSQL**
-2. Name: `super-agent-db`
-3. Plan: **Free**
-4. Database: `super_agent`, User: `super_agent`
-5. Save the **Internal Database URL** — you'll need it
+If an OpenAI key is ever exposed:
 
-### 2. Create Backend Web Service
+1. Revoke it immediately in the OpenAI Platform.
+2. Create a replacement key.
+3. Update `OPENAI_API_KEY` on the backend only.
+4. Redeploy the backend.
+5. Review OpenAI usage for unexpected calls.
 
-1. **New +** → **Web Service**
-2. Connect your GitHub repo
-3. Name: `super-agent-backend`
-4. Runtime: **Docker**
-5. Dockerfile Path: `./backend/Dockerfile`
-6. Docker Build Context: `./backend`
-7. Plan: **Free**
-8. Health Check Path: `/api/v1/health`
-9. Environment variables:
-   - `DATABASE_URL` → paste the Internal Database URL from step 1, but change `postgres://` to `postgresql+psycopg://`
-   - `JWT_SECRET` → generate with `openssl rand -hex 32`
-   - `CORS_ORIGINS` → `*` (update later)
-   - `AI_ENABLED` → `false`
-   - `RATE_LIMIT_ENABLED` → `true`
-   - `RATE_LIMIT_TRUST_PROXY_HEADERS` → `true`
-10. Create Web Service
+## Can Codex deploy it directly?
 
-### 3. Create Frontend Web Service
+Deployment requires access to your Render workspace, linked GitHub repository, billing choices, and secret API key entry. Without an authenticated Render session or scoped Render API token, Codex cannot create resources on your behalf. After those credentials are configured locally, the Render CLI/API can be used, but the OpenAI key should still be entered directly into Render rather than shared in chat.
 
-1. **New +** → **Web Service**
-2. Same GitHub repo
-3. Name: `super-agent-frontend`
-4. Runtime: **Docker**
-5. Dockerfile Path: `./frontend/Dockerfile`
-6. Docker Build Context: `./frontend`
-7. Plan: **Free**
-8. Environment variables:
-   - `BACKEND_URL` → your backend's public URL from step 2
-   - `VITE_API_BASE` → `/api/v1`
-9. Create Web Service
+## Official references
 
-### 4. Update CORS
-
-After both services are live, update `CORS_ORIGINS` on the backend to your frontend URL.
-
----
-
-## Rollback
-
-Render keeps every deployment. To roll back:
-
-1. Open the service → **Deploys**
-2. Find the last known-good deploy
-3. Click **Roll back to this deploy**
-
-This takes ~30 seconds and doesn't require a rebuild.
-
----
-
-## What's Next
-
-After deployment:
-
-1. Read **USAGE.md** for the full end-user guide
-2. Read **docs/demo-script.md** for the 7-9 minute judge demo script
-3. Read **docs/responsible-design.md** for the safety constraints
-4. Read **docs/prd-compliance-matrix.md** for the PDF requirement compliance map
+- [Render Blueprints](https://render.com/docs/blueprint-spec)
+- [Render Docker deployments](https://render.com/docs/docker)
+- [Render environment variables and secrets](https://render.com/docs/configure-environment-variables)
+- [Render free-tier limitations](https://render.com/docs/free)
+- [OpenAI GPT-5.4 mini model details](https://developers.openai.com/api/docs/models/gpt-5.4-mini)

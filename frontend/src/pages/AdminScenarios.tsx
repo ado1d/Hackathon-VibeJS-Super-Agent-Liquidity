@@ -78,7 +78,7 @@ export function AdminScenarios() {
         </div>
         <button className="button ghost" onClick={() => reset.mutate()}>
           <RotateCcw size={16} />
-          Reset baseline state
+          Clear active demo state
         </button>
       </div>
       <div className="scenario-grid">

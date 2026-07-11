@@ -409,6 +409,10 @@ docker compose logs -f edge
 docker compose logs -f postgres
 ```
 
+## Render deployment
+
+The `ui-fix` branch includes a Render Blueprint for PostgreSQL, FastAPI, and the Nginx-served frontend. For secret-safe OpenAI setup, the required one-time backend URL connection, verification commands, free-tier limitations, and rollback instructions, follow [Deploy to Render with OpenAI Enabled](docs/render-deployment.md).
+
 ## Ubuntu demo-VM deployment
 
 This is a single-VM hackathon deployment, not a regulated production baseline.

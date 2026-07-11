@@ -45,11 +45,11 @@ Sign in as `admin` → go to **Demo control** → click a scenario button.
 | **A** — Hidden provider shortage | Total value looks healthy, but Provider A is about to run out | Open the agent → see Provider A bar is red/short, Provider B is fine. The alert says "Provider A e-money may reach its safety buffer in X minutes" |
 | **B** — Cash pressure + unusual activity | Shared cash is falling AND there are repeated near-identical transactions | Two separate alerts: one for cash shortage, one for "repeated near-identical transactions requiring review" |
 | **C** — Feed inconsistency | One provider feed is missing, another conflicts with the ledger | Confidence drops to ~50%, precise shortage time is suppressed, alert says "no reliable shortage estimate" |
-| **D** — Coordinated response | A high-priority alert is ready for the full workflow | Claim → Acknowledge → Add note → Escalate → Switch to Risk → Start progress → Resolve. Watch the timeline grow. |
+| **D** — Coordinated response | A high-priority alert is ready for the full workflow | Claim → Acknowledge → Add note → Escalate → sign out → sign in as Risk → Start progress → Resolve. Watch the timeline grow. |
 
 ### Reset to clean state
 
-On the **Demo control** page (admin only), click **Reset baseline state**. This clears all alerts, forecasts, and transactions, and loads the healthy baseline.
+On the **Demo control** page (admin only), click **Clear active demo state**. This clears active operational demo data. Load a scenario afterward to repopulate alerts, forecasts, balances, and transactions.
 
 ---
 
@@ -96,9 +96,8 @@ On the **Demo control** page (admin only), click **Reset baseline state**. This 
    - Confidence reasons
    - Uncertainty statement
    - The operations officer's notes
-4. You can **Start progress** and **Resolve** with a resolution code
-5. You **cannot** claim or acknowledge (those are operations actions)
-6. You **cannot** make a final fraud determination — the language is always "unusual" or "requires review"
+4. You can claim an escalated case, acknowledge it, start progress, add review notes, request AI advisory steps when enabled, and resolve with a resolution code.
+5. You **cannot** make a final fraud determination — the language is always "unusual" or "requires review".
 
 ### Management role
 
@@ -115,9 +114,9 @@ On the **Demo control** page (admin only), click **Reset baseline state**. This 
 1. Sign in as `admin`
 2. You land on **Demo control** — the scenario laboratory
 3. **Load Scenario A/B/C/D** — each button loads a deterministic, reproducible scenario
-4. **Reset baseline state** — clears everything and loads the healthy baseline
+4. **Clear active demo state** — clears active demo data; load a scenario to repopulate it
 5. **Scenario comparison** — shows measured results from prior runs
-6. To see the operational view, click **Home** in the sidebar — admin sees the full operations cockpit
+6. To see the operational view, click **Operations** in the sidebar.
 7. To import test transactions: `POST /api/v1/admin/transactions/import` (documented in the API docs at `/docs`)
 
 ---
@@ -135,10 +134,10 @@ If `AI_ENABLED=true` and `OPENAI_API_KEY` is set, an **AI-assisted explanation**
 ### AI safety guarantees
 
 - AI output is **advisory only** — it never blocks, freezes, or accuses
-- The system prompt forbids words like "fraud", "block", "freeze", "guilty"
-- A post-filter rejects any output containing those words and falls back to a deterministic template
-- Every AI call is logged to the audit trail with model, tokens, and cache status
-- If OpenAI is unavailable, the app works fully without AI — the panel just doesn't appear
+- The prompt forbids fraud declarations, accusations, blocking/freezing, guilt claims, and automatic transfers.
+- A deterministic post-filter rejects matching unsafe phrases and returns a safe fallback without persisting the rejected text.
+- Approved provider responses store model, token usage, request ID, prompt version, and cache statistics in the AI cache.
+- If OpenAI is unavailable after AI has been configured, the panel returns `deterministic_fallback`; core workflows remain fully functional.
 
 ---
 

@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     rate_limit_storage_uri: str = "memory://"
     rate_limit_trust_proxy_headers: bool = True
     openai_api_key: SecretStr | None = None
-    openai_model: str = "gpt-4o-mini"
+    openai_model: str = "gpt-5.4-mini"
     ai_enabled: bool = False
     ai_max_output_tokens: int = 500
     ai_timeout_seconds: float = 12

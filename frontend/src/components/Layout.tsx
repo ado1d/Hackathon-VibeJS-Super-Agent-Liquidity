@@ -34,17 +34,23 @@ export function Layout() {
             <Activity size={18} />
             Home
           </NavLink>
-          {user?.role === "management" && (
+          {(user?.role === "management" || user?.role === "admin") && (
             <NavLink to="/management" onClick={() => setMobileNavOpen(false)}>
               <Users size={18} />
               Management
             </NavLink>
           )}
           {user?.role === "admin" && (
-            <NavLink to="/admin" onClick={() => setMobileNavOpen(false)}>
-              <Settings size={18} />
-              Demo control
-            </NavLink>
+            <>
+              <NavLink to="/operations" onClick={() => setMobileNavOpen(false)}>
+                <Activity size={18} />
+                Operations
+              </NavLink>
+              <NavLink to="/admin" onClick={() => setMobileNavOpen(false)}>
+                <Settings size={18} />
+                Demo control
+              </NavLink>
+            </>
           )}
         </nav>
         <div className="sidebar-note">

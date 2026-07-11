@@ -29,7 +29,7 @@ export default function App() {
         />
         <Route
           path="operations"
-          element={<RoleGuard roles={["operations"]}><Dashboard /></RoleGuard>}
+          element={<RoleGuard roles={["operations", "admin"]}><Dashboard /></RoleGuard>}
         />
         <Route
           path="review-queue"
