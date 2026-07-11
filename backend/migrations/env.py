@@ -4,11 +4,19 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.config import get_settings
-from app.database import Base
+from app.database import Base, normalize_database_url
 from app import models  # noqa: F401
 
 config = context.config
 database_url = get_settings().database_url
+
+# Normalize whatever DATABASE_URL the platform injects.
+# Render's `fromDatabase: property: connectionString` outputs `postgres://...`,
+# which SQLAlchemy would interpret as the legacy psycopg2 driver (not
+# installed). The normalizer rewrites it to `postgresql+psycopg://...` so
+# Alembic uses the installed psycopg3 driver.
+database_url = normalize_database_url(database_url)
+
 # The application uses an async SQLite driver in tests, while Alembic's
 # migration runner is synchronous. PostgreSQL's psycopg URL works in both.
 migration_url = database_url.replace("sqlite+aiosqlite://", "sqlite://")

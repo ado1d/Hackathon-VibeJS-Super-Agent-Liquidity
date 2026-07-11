@@ -76,3 +76,23 @@ def test_additional_penalties_cannot_increase_confidence() -> None:
         ConfidenceInput(feed_status=FeedStatus.DELAYED, sample_count=2, volatility=0.9)
     ).score
     assert baseline >= sparse >= sparse_delayed >= sparse_delayed_volatile
+
+
+def test_database_url_normalize_handles_render_format() -> None:
+    """Render's `fromDatabase: connectionString` injects `postgres://...`.
+    SQLAlchemy interprets that as the legacy psycopg2 driver (not installed).
+    The normalizer must rewrite it to `postgresql+psycopg://` so psycopg3 is used.
+    """
+    from app.database import normalize_database_url
+
+    # Render's actual format
+    render_url = "postgres://user:pass@dpg-xyz.oregon-postgres.render.com:5432/super_agent"
+    assert normalize_database_url(render_url) == "postgresql+psycopg://user:pass@dpg-xyz.oregon-postgres.render.com:5432/super_agent"
+
+    # Common variants
+    assert normalize_database_url("postgresql://u:p@h:5432/d") == "postgresql+psycopg://u:p@h:5432/d"
+    assert normalize_database_url("postgresql+psycopg2://u:p@h:5432/d") == "postgresql+psycopg://u:p@h:5432/d"
+    assert normalize_database_url("postgresql+psycopg://u:p@h:5432/d") == "postgresql+psycopg://u:p@h:5432/d"
+
+    # Non-Postgres URLs unchanged
+    assert normalize_database_url("sqlite+aiosqlite:///./test.db") == "sqlite+aiosqlite:///./test.db"
