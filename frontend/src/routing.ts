@@ -1,11 +1,11 @@
 import type { Role } from "./types";
 
 const LANDING_PATHS: Record<Role, string> = {
-  agent: "/my-agent",
-  operations: "/operations",
-  risk: "/review-queue",
-  management: "/management",
-  admin: "/admin",
+  agent: "/workspace",
+  operations: "/workspace",
+  risk: "/workspace",
+  management: "/workspace",
+  admin: "/workspace",
 };
 
 export function landingPath(role: Role): string {

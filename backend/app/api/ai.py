@@ -14,7 +14,8 @@ from app.database import get_session
 from app.enums import Role
 from app.errors import AppError
 from app.models import AIResponseCache, User
-from app.services.ai import ai_is_enabled, run_ai_feature
+from app.schemas import AssistantRequest
+from app.services.ai import ai_is_enabled, run_ai_feature, run_assistant
 
 router = APIRouter(tags=["ai"])
 
@@ -37,6 +38,15 @@ async def ai_status(user: User = Depends(current_user)) -> dict:
         "features": ["translate", "summarize", "recommendations"] if ai_is_enabled() else [],
         "core_workflows_available": True,
     }
+
+
+@router.post("/assistant")
+async def assistant(
+    payload: AssistantRequest,
+    user: User = Depends(current_user),
+    session: AsyncSession = Depends(get_session),
+) -> dict:
+    return await run_assistant(session, user, payload.question, payload.history)
 
 
 @router.post("/alerts/{alert_id}/translate")

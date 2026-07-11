@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
-from app.api import admin, agents, ai, alerts, auth, demo, health, metrics, users
+from app.api import admin, agents, ai, alerts, audit, auth, demo, health, metrics, users
 from app.config import get_settings
 from app.errors import AppError, app_error_handler, validation_error_handler
 from app.rate_limit import limiter, rate_limit_handler
@@ -61,6 +61,7 @@ for router in (
     demo.router,
     agents.router,
     alerts.router,
+    audit.router,
     ai.router,
     metrics.router,
     admin.router,

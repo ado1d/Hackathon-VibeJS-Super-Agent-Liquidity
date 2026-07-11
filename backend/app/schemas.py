@@ -67,6 +67,16 @@ class ForecastSimulationRequest(BaseModel):
     demand_multiplier: float = Field(ge=1.0, le=3.0)
 
 
+class AssistantMessage(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str = Field(min_length=1, max_length=1200)
+
+
+class AssistantRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=1200)
+    history: list[AssistantMessage] = Field(default_factory=list, max_length=8)
+
+
 class IsolationForestConfigRequest(BaseModel):
     enabled: bool
 

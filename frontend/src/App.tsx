@@ -10,6 +10,7 @@ import { Login } from "./pages/Login";
 import { ManagementSummary } from "./pages/ManagementSummary";
 import { AgentLanding } from "./pages/AgentLanding";
 import { RiskQueue } from "./pages/RiskQueue";
+import { SaliWorkspace } from "./pages/SaliWorkspace";
 import { landingPath } from "./routing";
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
 
   return (
     <Routes>
+      <Route path="workspace" element={<SaliWorkspace />} />
       <Route element={<Layout />}>
         <Route index element={<Navigate to={landingPath(user.role)} replace />} />
         <Route
