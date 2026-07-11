@@ -2,6 +2,21 @@
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+# Default coverage config — consumed by `python -m pytest --cov=app`
+# in CI and by `make test` locally. Output path matches what
+# sonar-project.properties expects.
+addopts = "--cov=app --cov-report=term-missing --cov-report=xml:coverage.xml"
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "app/__init__.py",
+    "app/seed/__init__.py",
+    "migrations/*",
+]
+
+[tool.coverage.xml]
+output = "coverage.xml"
 
 [tool.ruff]
 line-length = 100

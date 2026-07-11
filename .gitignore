@@ -9,9 +9,12 @@ __pycache__/
 *.py[cod]
 backend/htmlcov/
 backend/.coverage
+backend/coverage.xml
+backend/test.db
 frontend/node_modules/
 frontend/dist/
 frontend/playwright-report/
+frontend/coverage/
 frontend/*.tsbuildinfo
 frontend/vite.config.d.ts
 frontend/vite.config.js
