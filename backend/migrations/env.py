@@ -8,7 +8,11 @@ from app.database import Base
 from app import models  # noqa: F401
 
 config = context.config
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+database_url = get_settings().database_url
+# The application uses an async SQLite driver in tests, while Alembic's
+# migration runner is synchronous. PostgreSQL's psycopg URL works in both.
+migration_url = database_url.replace("sqlite+aiosqlite://", "sqlite://")
+config.set_main_option("sqlalchemy.url", migration_url)
 if config.config_file_name:
     fileConfig(config.config_file_name)
 target_metadata = Base.metadata

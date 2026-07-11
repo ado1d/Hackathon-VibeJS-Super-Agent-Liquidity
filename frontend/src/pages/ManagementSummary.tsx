@@ -3,6 +3,7 @@ import { BarChart3, Clock, Map, ShieldCheck } from "lucide-react";
 import { api } from "../api";
 import { StatusBadge } from "../components/StatusBadge";
 import type { Agent } from "../types";
+import { ResponsiveContainer, Tooltip, Treemap } from "recharts";
 
 interface Page<T> {
   items: T[];
@@ -31,6 +32,12 @@ export function ManagementSummary() {
       {},
     ),
   );
+  const severityData = Object.entries(
+    items.reduce<Record<string, number>>((acc, item) => {
+      acc[item.health] = (acc[item.health] ?? 0) + 1;
+      return acc;
+    }, {}),
+  ).map(([name, size]) => ({ name, size }));
   return (
     <div className="page">
       <div className="page-heading">
@@ -127,6 +134,25 @@ export function ManagementSummary() {
               </div>
             ))}
         </div>
+      </section>
+      <section className="panel management-chart">
+        <div className="panel-heading">
+          <div>
+            <h2>Severity distribution</h2>
+            <p>Aggregate agent health only; no customer-level detail.</p>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={260}>
+          <Treemap
+            data={severityData}
+            dataKey="size"
+            nameKey="name"
+            stroke="#ffffff"
+            fill="#0e7490"
+          >
+            <Tooltip />
+          </Treemap>
+        </ResponsiveContainer>
       </section>
     </div>
   );

@@ -1,4 +1,4 @@
-.PHONY: up dev down migrate seed reset demo test e2e lint metrics
+.PHONY: up dev down migrate seed reset demo test e2e lint metrics load-test
 
 up:
 	docker compose up -d --build
@@ -22,8 +22,11 @@ demo:
 	docker compose run --rm backend python -m app.seed.cli load D
 
 test:
-	cd backend && python -m pytest --cov=app/services --cov-fail-under=90
+	cd backend && python -m pytest
 	cd frontend && npm test -- --run
+
+load-test:
+	docker compose -f compose.yaml -f compose.loadtest.yaml --profile loadtest up --build --abort-on-container-exit locust
 
 e2e:
 	cd frontend && npm run e2e

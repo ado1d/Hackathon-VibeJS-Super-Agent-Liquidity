@@ -4,8 +4,11 @@ import {
   ArrowLeft,
   CheckCircle2,
   CircleHelp,
+  Copy,
   ClipboardCheck,
+  Printer,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { post, api } from "../api";
@@ -16,7 +19,8 @@ import { StatusBadge } from "../components/StatusBadge";
 import { Timeline } from "../components/Timeline";
 import { WorkflowActionBar } from "../components/WorkflowActionBar";
 import { labels, type Language } from "../i18n/templates";
-import type { Alert } from "../types";
+import type { AIResponse, AIStatus, Alert } from "../types";
+import { toast } from "sonner";
 
 interface AlertEvent {
   id: string;
@@ -44,16 +48,38 @@ export function AlertDetail() {
   const { user } = useAuth();
   const client = useQueryClient();
   const [language, setLanguage] = useState<Language>("en");
+  const [aiResult, setAIResult] = useState<AIResponse | null>(null);
 
   const detail = useQuery({
     queryKey: ["alert", alertId],
     queryFn: () => api<Detail>(`/alerts/${alertId}`),
   });
+  const aiStatus = useQuery({
+    queryKey: ["ai-status"],
+    queryFn: () => api<AIStatus>("/ai/status"),
+  });
   const action = useMutation({
     mutationFn: ({ name, body }: { name: string; body?: unknown }) =>
       post(`/alerts/${alertId}/${name}`, body),
-    onSuccess: () =>
-      void client.invalidateQueries({ queryKey: ["alert", alertId] }),
+    onSuccess: () => {
+      toast.success("Workflow updated and audited");
+      void client.invalidateQueries({ queryKey: ["alert", alertId] });
+    },
+    onError: (error) => toast.error(error.message),
+  });
+  const aiAction = useMutation({
+    mutationFn: (feature: "translate" | "summarize" | "recommendations") => {
+      const suffix =
+        feature === "translate"
+          ? `/translate?lang=${language === "bn" ? "bn" : "banglish"}`
+          : `/${feature}`;
+      return post<AIResponse>(`/alerts/${alertId}${suffix}`);
+    },
+    onSuccess: (result) => {
+      setAIResult(result);
+      toast.success("AI assistance ready for human review");
+    },
+    onError: (error) => toast.error(error.message),
   });
 
   if (detail.isLoading) {
@@ -65,6 +91,15 @@ export function AlertDetail() {
 
   const alert = detail.data.alert;
   const t = labels[language];
+  const handover = [
+    `Alert: ${alert.summary}`,
+    `Severity / status: ${alert.severity} / ${alert.status}`,
+    `Why flagged: ${alert.reason}`,
+    `Confidence: ${Math.round(Number(alert.confidence) * 100)}%`,
+    `Uncertainty: ${alert.uncertainty_statement}`,
+    `Recommended next step: ${alert.recommended_next_step}`,
+    "Synthetic decision support only; human review is required.",
+  ].join("\n");
 
   return (
     <div className="page">
@@ -98,6 +133,17 @@ export function AlertDetail() {
               <option value="banglish">Banglish</option>
             </select>
           </label>
+          <div className="handover-actions">
+            <button
+              className="button ghost"
+              onClick={() => void navigator.clipboard.writeText(handover)}
+            >
+              <Copy size={15} /> Copy for handover
+            </button>
+            <button className="button ghost" onClick={() => window.print()}>
+              <Printer size={15} /> Print
+            </button>
+          </div>
         </div>
       </div>
 
@@ -141,6 +187,52 @@ export function AlertDetail() {
           </p>
         </EvidencePanel>
       </div>
+
+      {aiStatus.data?.enabled && (
+        <section className="panel ai-panel">
+          <div className="panel-heading">
+            <div>
+              <h2><Sparkles size={17} /> AI-assisted explanation</h2>
+              <p>Structured synthetic context only. Human review remains required.</p>
+            </div>
+            <div className="action-bar">
+              {language !== "en" && (
+                <button
+                  disabled={aiAction.isPending}
+                  onClick={() => aiAction.mutate("translate")}
+                >
+                  Translate
+                </button>
+              )}
+              <button
+                disabled={aiAction.isPending}
+                onClick={() => aiAction.mutate("summarize")}
+              >
+                Summarize
+              </button>
+              {user && ["operations", "risk", "admin"].includes(user.role) && (
+                <button
+                  disabled={aiAction.isPending}
+                  onClick={() => aiAction.mutate("recommendations")}
+                >
+                  Advisory steps
+                </button>
+              )}
+            </div>
+          </div>
+          {aiAction.error && <p className="error ai-content">{aiAction.error.message}</p>}
+          {aiResult && (
+            <div className="ai-content">
+              <div className="badge-row">
+                <StatusBadge value={aiResult.source} />
+                <span>{aiResult.prompt_version}</span>
+              </div>
+              <pre>{JSON.stringify(aiResult.result, null, 2)}</pre>
+              <p><strong>Required uncertainty:</strong> {aiResult.uncertainty}</p>
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="panel workflow">
         <div className="panel-heading">

@@ -11,7 +11,12 @@ is re-exported from this ``__init__`` so existing imports
 ``from app.services.scenarios import load_scenario`` continue to work.
 """
 
-from app.services.scenarios.loader import load_scenario, recompute_agent, reset_operational_data
+from app.services.scenarios.loader import (
+    load_scenario,
+    recompute_agent,
+    reset_operational_data,
+    update_measured_results,
+)
 from app.services.scenarios.specs import ANCHOR, SPECS, ScenarioSpec
 
 __all__ = [
@@ -21,4 +26,5 @@ __all__ = [
     "load_scenario",
     "recompute_agent",
     "reset_operational_data",
+    "update_measured_results",
 ]

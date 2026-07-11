@@ -39,6 +39,15 @@ The application forecasts provider and shared-cash pressure, detects unusual tra
 - English, Bengali, and Banglish explanation labels.
 - What-if demand simulation, nearby-agent discovery, relationship evidence, CSV exports, and validation metrics.
 - Docker Compose, Alembic migrations, health checks, GitHub Actions, and a systemd deployment unit.
+- Optional OpenAI Responses API assistance for structured translation, summaries, and advisory next steps; disabled by default with deterministic fallback.
+
+### Innovation highlights
+
+- Reconciles transaction-ledger movement against immutable balance snapshots instead of overwriting history.
+- Keeps explainable anomaly rules authoritative while using Isolation Forest only as a secondary signal.
+- Separates measured facts, forecasts, uncertainty, and recommendations in both API and UI contracts.
+- Adds safety-filtered structured AI without making core detection, workflow, or offline operation depend on a model provider.
+- Defers free-form Q&A and AI note handover until a live safety evaluation passes.
 
 ## Architecture
 
@@ -74,15 +83,16 @@ flowchart LR
 
 Provider balances are never combined as if they were transferable. Isolation Forest is a secondary review signal; the rule engine and human workflow remain authoritative.
 
-More detail: [architecture](docs/architecture.md), [data simulation](docs/data-simulation.md), and [responsible design](docs/responsible-design.md).
+More detail: [architecture](docs/architecture.md), [data simulation](docs/data-simulation.md), [responsible design](docs/responsible-design.md), [AI integration](docs/ai-integration.md), and the [PRD compliance matrix](docs/prd-compliance-matrix.md).
 
 ## Technology stack
 
 | Layer | Technology |
 | --- | --- |
-| Frontend | React 18, TypeScript, Vite, React Router, TanStack Query, Recharts |
-| Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 async |
+| Frontend | React 18, TypeScript, Vite, React Router, TanStack Query, Recharts, optional Leaflet |
+| Backend | Python 3.12, FastAPI, Pydantic v2, SQLAlchemy 2 async, SlowAPI |
 | Analytics | Python rules, NumPy, scikit-learn Isolation Forest |
+| Optional AI | OpenAI async SDK, Responses API, Pydantic structured outputs |
 | Database | PostgreSQL 16, Alembic migrations |
 | Edge | Unprivileged Nginx |
 | Testing | pytest, HTTPX ASGI smoke tests, Vitest, Playwright |
@@ -233,7 +243,7 @@ Backend:
 cd backend
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 alembic upgrade head
 python -m app.seed.cli load baseline --if-empty
 uvicorn app.main:app --reload --port 8000
@@ -245,7 +255,7 @@ PowerShell activation:
 Set-Location backend
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 alembic upgrade head
 python -m app.seed.cli load baseline --if-empty
 uvicorn app.main:app --reload --port 8000
@@ -267,7 +277,7 @@ The Vite development configuration proxies `/api` to `http://localhost:8000`.
 
 | Variable | Default/example | Purpose |
 | --- | --- | --- |
-| `APP_ENV` | `demo` | Enables demonstration-only behavior such as role switching |
+| `APP_ENV` | `demo` | Marks the synthetic demonstration environment |
 | `DATABASE_URL` | PostgreSQL psycopg URL | SQLAlchemy database connection |
 | `POSTGRES_DB` | `super_agent` | Compose PostgreSQL database |
 | `POSTGRES_USER` | `super_agent` | Compose PostgreSQL user |
@@ -286,7 +296,20 @@ The Vite development configuration proxies `/api` to `http://localhost:8000`.
 | `MISSING_AFTER_MINUTES` | `15` | Missing-feed threshold |
 | `ANOMALY_CONFIG_PATH` | YAML path | Configurable anomaly thresholds |
 | `ENABLE_ISOLATION_FOREST` | `true` | Enables the secondary statistical signal |
+| `RATE_LIMIT_ENABLED` | `true` | Enables SlowAPI login and authenticated API limits |
+| `RATE_LIMIT_STORAGE_URI` | `memory://` | Single-process demo limiter store; use Redis for multiple workers |
+| `RATE_LIMIT_TRUST_PROXY_HEADERS` | `true` | Trusts client IP headers from the bundled edge; disable if backend is public |
+| `AI_ENABLED` | `false` | Enables the optional three-feature AI layer |
+| `OPENAI_API_KEY` | empty | Secret provider key; never required for core operation |
+| `OPENAI_MODEL` | `gpt-5.4-mini` | Configurable Responses API model |
+| `AI_MAX_OUTPUT_TOKENS` | `500` | Structured response output limit |
+| `AI_TIMEOUT_SECONDS` | `12` | Provider timeout before deterministic fallback |
+| `AI_CACHE_TTL_MINUTES` | `60` | Approved response cache lifetime |
+| `AI_*_COST_PER_MILLION` | `0` | Operator-maintained cost rates |
+| `AI_PRICING_VERSION` | `unconfigured` | Required pricing source/version label |
+| `VALIDATION_DATA_DIR` | `/app/data/validation` | Measured latency artifact directory |
 | `VITE_API_BASE` | `/api/v1` | Frontend API base URL |
+| `VITE_MAP_TILE_URL` | empty | Optional Leaflet tile template; list fallback remains available |
 | `DOMAIN` | empty | Optional deployment domain metadata |
 
 Thresholds for individual detectors are defined in [`backend/app/services/anomaly_thresholds.yaml`](backend/app/services/anomaly_thresholds.yaml).
@@ -304,12 +327,12 @@ python -m tests.run_smoke
 python -m tests.run_api_smoke
 ```
 
-The API smoke test covers authentication, RBAC scope, agent overview, alert workflow, role switching, resolution, invalid-record quarantine, and forecast recomputation.
+The API smoke test covers authentication, RBAC scope, fixed-role sign-out/sign-in, agent overview, alert workflow, standard rate-limit errors, resolution, invalid-record quarantine, and forecast recomputation.
 
 Coverage gate:
 
 ```bash
-python -m pytest --cov=app/services --cov-fail-under=90
+python -m pytest
 ```
 
 ### Frontend
@@ -340,6 +363,7 @@ npm run e2e
 | `make seed` | Load the healthy baseline |
 | `make reset` | Clear current operational demo data |
 | `make demo` | Load Scenario D |
+| `make load-test` | Run the 60-second Locust profile and export measured p95 |
 | `make test` | Run backend coverage and frontend unit tests |
 | `make lint` | Run backend and frontend static checks |
 | `make e2e` | Run Playwright |
@@ -353,13 +377,16 @@ The API base path is `/api/v1`. Interactive documentation is available at `/docs
 
 Important endpoints:
 
-- `POST /auth/login`, `POST /auth/switch-role`, `GET /users/me`
+- `POST /auth/login`, `GET /users/me` (roles change only by signing out and using another account)
 - `GET /agents`, `GET /agents/{id}/overview`
 - `GET /alerts`, `GET /alerts/{id}`, workflow action endpoints
 - `POST /admin/scenarios/{A|B|C|D}/load`
 - `POST /admin/scenarios/reset`
 - `POST /admin/transactions/import`
 - `GET /metrics/validation`, `GET /metrics/scenarios`
+- `GET /demo/status`, `GET /ai/status`
+- `POST /alerts/{id}/translate|summarize|recommendations`
+- `GET /admin/ai-usage`
 - `GET /health`, `GET /ready`
 
 Run a scenario from inside the backend container:

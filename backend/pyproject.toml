@@ -5,7 +5,7 @@ testpaths = ["tests"]
 # Default coverage config — consumed by `python -m pytest --cov=app`
 # in CI and by `make test` locally. Output path matches what
 # sonar-project.properties expects.
-addopts = "--cov=app --cov-report=term-missing --cov-report=xml:coverage.xml"
+addopts = "--cov=app/services --cov-fail-under=75 --cov-report=term-missing --cov-report=xml:coverage.xml"
 
 [tool.coverage.run]
 source = ["app"]

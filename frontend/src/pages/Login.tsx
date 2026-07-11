@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import type { Role } from "../types";
 
@@ -19,13 +20,15 @@ const accounts: { role: Role; description: string }[] = [
 
 export function Login() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState<Role | null>(null);
   const [error, setError] = useState("");
   async function enter(role: Role) {
     setBusy(role);
     setError("");
     try {
-      await login(role, "demo-pass");
+      const result = await login(role, "demo-pass");
+      navigate(result.landing_path, { replace: true });
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Login failed");
     } finally {

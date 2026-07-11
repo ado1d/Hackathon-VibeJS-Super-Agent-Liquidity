@@ -29,7 +29,7 @@ SPECS: dict[str, ScenarioSpec] = {
         (Decimal("90000"), Decimal("110000")),
         Decimal("100000"),
         (FeedStatus.FRESH, FeedStatus.FRESH),
-        {"alerts": []},
+        {"expected_anomaly_types": []},
     ),
     "A": ScenarioSpec(
         "A",
@@ -38,7 +38,7 @@ SPECS: dict[str, ScenarioSpec] = {
         (Decimal("40000"), Decimal("120000")),
         Decimal("80000"),
         (FeedStatus.FRESH, FeedStatus.FRESH),
-        {"provider_shortage": True},
+        {"provider_shortage": True, "expected_anomaly_types": ["velocity_spike"]},
     ),
     "B": ScenarioSpec(
         "B",
@@ -47,7 +47,10 @@ SPECS: dict[str, ScenarioSpec] = {
         (Decimal("45000"), Decimal("70000")),
         Decimal("55000"),
         (FeedStatus.FRESH, FeedStatus.FRESH),
-        {"cash_shortage": True, "unusual": True},
+        {
+            "cash_shortage": True,
+            "expected_anomaly_types": ["repeated_near_identical", "velocity_spike"],
+        },
     ),
     "C": ScenarioSpec(
         "C",
@@ -56,7 +59,7 @@ SPECS: dict[str, ScenarioSpec] = {
         (Decimal("60000"), Decimal("80000")),
         Decimal("70000"),
         (FeedStatus.MISSING, FeedStatus.CONFLICTING),
-        {"safe_fallback": True},
+        {"safe_fallback": True, "expected_anomaly_types": ["ledger_balance_conflict"]},
     ),
     "D": ScenarioSpec(
         "D",
@@ -65,6 +68,6 @@ SPECS: dict[str, ScenarioSpec] = {
         (Decimal("32000"), Decimal("90000")),
         Decimal("65000"),
         (FeedStatus.FRESH, FeedStatus.FRESH),
-        {"workflow_alert": True},
+        {"workflow_alert": True, "expected_anomaly_types": ["velocity_spike"]},
     ),
 }

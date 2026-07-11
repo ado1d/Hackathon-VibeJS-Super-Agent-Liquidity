@@ -1,12 +1,11 @@
 import { Activity, Bell, LogOut, Radar, Settings, Users } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../auth";
-import type { Role } from "../types";
-
-const roles: Role[] = ["agent", "operations", "risk", "management", "admin"];
+import { landingPath } from "../routing";
+import { DemoStatus } from "./DemoStatus";
 
 export function Layout() {
-  const { user, logout, switchRole } = useAuth();
+  const { user, logout } = useAuth();
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -18,9 +17,9 @@ export function Layout() {
           </div>
         </div>
         <nav aria-label="Primary navigation">
-          <NavLink to="/">
+          <NavLink to={user ? landingPath(user.role) : "/"}>
             <Activity size={18} />
-            Operational view
+            Home
           </NavLink>
           {user?.role === "management" && (
             <NavLink to="/management">
@@ -49,25 +48,13 @@ export function Layout() {
             <strong>{user?.display_name}</strong>
           </div>
           <div className="top-actions">
-            <label className="role-select">
-              View as{" "}
-              <select
-                value={user?.role}
-                onChange={(event) =>
-                  void switchRole(event.target.value as Role)
-                }
-              >
-                {roles.map((role) => (
-                  <option key={role}>{role}</option>
-                ))}
-              </select>
-            </label>
             <button className="button ghost" onClick={logout}>
               <LogOut size={16} />
               Sign out
             </button>
           </div>
         </header>
+        <DemoStatus />
         <Outlet />
       </main>
     </div>

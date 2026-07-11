@@ -6,6 +6,8 @@ import { AgentLiquidityTable } from "../components/AgentLiquidityTable";
 import { MetricGrid } from "../components/MetricGrid";
 import { PriorityQueue } from "../components/PriorityQueue";
 import type { Agent, Alert } from "../types";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 interface Page<T> {
   items: T[];
@@ -25,7 +27,11 @@ export function Dashboard() {
   });
 
   if (agents.isLoading) {
-    return <div className="loading">Loading operational picture…</div>;
+    return (
+      <div className="page" aria-label="Loading operational picture">
+        <Skeleton height={80} count={4} />
+      </div>
+    );
   }
   if (agents.error) {
     return (

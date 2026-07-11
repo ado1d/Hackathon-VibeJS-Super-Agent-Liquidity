@@ -245,3 +245,22 @@ class AuditLog(Base):
     occurred_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, index=True
     )
+
+
+class AIResponseCache(Base):
+    __tablename__ = "ai_response_cache"
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    cache_key: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    feature: Mapped[str] = mapped_column(String(40), index=True)
+    alert_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("alerts.id"), index=True)
+    model: Mapped[str] = mapped_column(String(120))
+    prompt_version: Mapped[str] = mapped_column(String(40))
+    response_payload: Mapped[dict[str, Any]] = mapped_column(JSON)
+    input_tokens: Mapped[int] = mapped_column(default=0)
+    output_tokens: Mapped[int] = mapped_column(default=0)
+    openai_request_id: Mapped[str | None] = mapped_column(String(120))
+    safety_status: Mapped[str] = mapped_column(String(40), default="approved")
+    hit_count: Mapped[int] = mapped_column(default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_accessed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

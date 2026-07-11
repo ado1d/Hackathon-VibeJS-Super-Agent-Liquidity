@@ -58,3 +58,17 @@ def has_permission(role: Role, permission: str) -> bool:
     if permission in PERMISSIONS[role]:
         return True
     return "*" in PERMISSIONS[role]
+
+
+ROLE_LANDING_PATHS: dict[Role, str] = {
+    Role.AGENT: "/my-agent",
+    Role.OPERATIONS: "/operations",
+    Role.RISK: "/review-queue",
+    Role.MANAGEMENT: "/management",
+    Role.ADMIN: "/admin",
+}
+
+
+def landing_path(role: Role) -> str:
+    """Return the single canonical frontend landing path for a database role."""
+    return ROLE_LANDING_PATHS[role]

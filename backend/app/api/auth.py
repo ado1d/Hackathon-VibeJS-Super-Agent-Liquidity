@@ -1,14 +1,13 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import current_user
-from app.config import get_settings
 from app.database import get_session
 from app.errors import AppError
 from app.models import User
-from app.permissions import permissions_for
-from app.schemas import LoginRequest, SwitchRoleRequest, TokenResponse, UserView
+from app.permissions import landing_path, permissions_for
+from app.rate_limit import limiter, login_rate_limit_key
+from app.schemas import LoginRequest, TokenResponse, UserView
 from app.security import create_access_token, verify_password
 from app.services.audit import add_audit
 
@@ -20,12 +19,21 @@ def _response(user: User) -> TokenResponse:
     view = UserView.model_validate(user).model_copy(
         update={"permissions": permissions_for(user.role)}
     )
-    return TokenResponse(access_token=token, expires_in=expires, user=view)
+    return TokenResponse(
+        access_token=token,
+        expires_in=expires,
+        user=view,
+        landing_path=landing_path(user.role),
+    )
 
 
 @router.post("/login", response_model=TokenResponse)
+@limiter.limit("5/minute", key_func=login_rate_limit_key)
 async def login(
-    payload: LoginRequest, request: Request, session: AsyncSession = Depends(get_session)
+    payload: LoginRequest,
+    request: Request,
+    response: Response,
+    session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:
     user = (
         await session.execute(select(User).where(User.username == payload.username))
@@ -43,38 +51,3 @@ async def login(
     )
     await session.commit()
     return _response(user)
-
-
-@router.post("/switch-role", response_model=TokenResponse)
-async def switch_role(
-    payload: SwitchRoleRequest,
-    request: Request,
-    actor: User = Depends(current_user),
-    session: AsyncSession = Depends(get_session),
-) -> TokenResponse:
-    if get_settings().app_env != "demo":
-        raise AppError(
-            "AUTH_ROLE_SWITCH_DISABLED", "Role switching is only available in demo mode.", 403
-        )
-    target = (
-        (
-            await session.execute(
-                select(User).where(User.role == payload.role, User.is_active.is_(True))
-            )
-        )
-        .scalars()
-        .first()
-    )
-    if target is None:
-        raise AppError("AUTH_ROLE_UNAVAILABLE", "No active demo account exists for that role.", 404)
-    add_audit(
-        session,
-        "auth.role_switched",
-        actor.id,
-        "user",
-        str(target.id),
-        request.state.request_id,
-        {"from": actor.role.value, "to": target.role.value},
-    )
-    await session.commit()
-    return _response(target)

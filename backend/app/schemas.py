@@ -25,10 +25,6 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1, max_length=128)
 
 
-class SwitchRoleRequest(BaseModel):
-    role: Role
-
-
 class UserView(ORMModel):
     id: uuid.UUID
     username: str
@@ -42,6 +38,7 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
     expires_in: int
     user: UserView
+    landing_path: str
 
 
 class Page(BaseModel):

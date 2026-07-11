@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { lazy, Suspense } from "react";
 import {
   ArrowLeft,
   Banknote,
@@ -20,6 +21,10 @@ import { api, post } from "../api";
 import { StatusBadge } from "../components/StatusBadge";
 import type { Overview } from "../types";
 
+const NearbyMap = lazy(() =>
+  import("../components/NearbyMap").then((module) => ({ default: module.NearbyMap })),
+);
+
 const money = (value: string | number) =>
   new Intl.NumberFormat("en-BD", {
     style: "currency",
@@ -37,7 +42,13 @@ export function AgentDetail() {
     queryKey: ["nearby", agentId],
     queryFn: () =>
       api<{
-        agents: { id: string; name: string; distance_km: number }[];
+        agents: {
+          id: string;
+          name: string;
+          distance_km: number;
+          latitude: string;
+          longitude: string;
+        }[];
         notice: string;
       }>(`/agents/${agentId}/nearby`),
   });
@@ -174,6 +185,11 @@ export function AgentDetail() {
                   : "1× current demand"}
             </span>
             <small>Exploration only; results are not persisted.</small>
+            <div className="what-if-presets">
+              <button onClick={() => simulation.mutate(1)}>Normal 1×</button>
+              <button onClick={() => simulation.mutate(1.3)}>Salary day +30%</button>
+              <button onClick={() => simulation.mutate(1.5)}>Eid +50%</button>
+            </div>
           </div>
         </section>
         <section className="panel">
@@ -212,6 +228,11 @@ export function AgentDetail() {
               <p>Simulated locations; informational only.</p>
             </div>
           </div>
+          {nearby.data && import.meta.env.VITE_MAP_TILE_URL && (
+            <Suspense fallback={<div className="loading">Loading optional map…</div>}>
+              <NearbyMap origin={data.agent} agents={nearby.data.agents} />
+            </Suspense>
+          )}
           {nearby.data?.agents.map((agent) => (
             <div className="nearby-row" key={agent.id}>
               <strong>{agent.name}</strong>

@@ -53,6 +53,7 @@ async def _calculate_provider(
     feed_status: FeedStatus,
     thresholds: dict[str, object],
     enable_iforest: bool,
+    detect_conflicts: bool,
 ) -> None:
     settings = get_settings()
     confidence = calculate_confidence(
@@ -150,12 +151,11 @@ async def _calculate_provider(
         )
 
     # Compare the reported balance against the opening balance plus ledger movement.
-    # ``provider_opening`` is the per-provider opening used to seed the scenario;
-    # for transaction imports the loader builds a refresh spec whose opening is
-    # the pre-import balance, so this same code path also catches conflicts
-    # introduced by an import.
+    # ``provider_opening`` is always the immutable opening from the active
+    # scenario contract. This keeps ledger reconciliation meaningful after
+    # transaction imports and recomputation.
     conflict = ledger_balance_conflict(provider_opening, balance, provider_rows, thresholds)
-    if conflict and spec.code == "C":
+    if conflict and detect_conflicts:
         await upsert_alert(
             session,
             agent_id=agent.id,
@@ -250,6 +250,8 @@ async def calculate_and_alert(
     rows: list[Transaction],
     balances: list[Decimal],
     cash: Decimal,
+    *,
+    detect_conflicts: bool = True,
 ) -> None:
     """Run forecasts and emit alerts for every provider and for shared cash."""
     settings = get_settings()
@@ -269,6 +271,7 @@ async def calculate_and_alert(
             spec.feed_statuses[idx],
             thresholds,
             settings.enable_isolation_forest,
+            detect_conflicts,
         )
 
     await _calculate_shared_cash(session, spec, run, agent, rows, cash)

@@ -141,6 +141,51 @@ async def list_agents(
                 )
             ).scalar_one()
         )
+        balance_rows = (
+            []
+            if run is None
+            else (
+                await session.execute(
+                    select(AgentProviderBalance, Provider)
+                    .join(Provider, Provider.id == AgentProviderBalance.provider_id)
+                    .where(
+                        AgentProviderBalance.agent_id == agent.id,
+                        AgentProviderBalance.scenario_run_id == run.id,
+                    )
+                    .order_by(
+                        Provider.code,
+                        AgentProviderBalance.source_timestamp.desc(),
+                        AgentProviderBalance.received_timestamp.desc(),
+                        AgentProviderBalance.id.desc(),
+                    )
+                )
+            ).all()
+        )
+        latest_by_provider: dict[uuid.UUID, tuple[AgentProviderBalance, Provider]] = {}
+        for balance, provider in balance_rows:
+            latest_by_provider.setdefault(provider.id, (balance, provider))
+        cash = (
+            None
+            if run is None
+            else (
+                (
+                    await session.execute(
+                        select(CashSnapshot)
+                        .where(
+                            CashSnapshot.agent_id == agent.id,
+                            CashSnapshot.scenario_run_id == run.id,
+                        )
+                        .order_by(
+                            CashSnapshot.source_timestamp.desc(),
+                            CashSnapshot.received_timestamp.desc(),
+                            CashSnapshot.id.desc(),
+                        )
+                    )
+                )
+                .scalars()
+                .first()
+            )
+        )
         items.append(
             {
                 "id": agent.id,
@@ -157,6 +202,27 @@ async def list_agents(
                 ),
                 "health": min((f.severity.value for f in forecasts), default="healthy"),
                 "alert_count": alerts,
+                "balances": {
+                    "cash": float(cash.balance) if cash else None,
+                    "providers": {
+                        provider.code: float(balance.balance)
+                        for balance, provider in latest_by_provider.values()
+                    },
+                },
+                "pressure_points": [
+                    {
+                        "resource_type": forecast.resource_type,
+                        "provider_id": forecast.provider_id,
+                        "current_balance": float(forecast.current_balance),
+                        "minimum_buffer": float(forecast.minimum_buffer),
+                        "shortage_minutes": (
+                            float(forecast.shortage_minutes)
+                            if forecast.shortage_minutes is not None
+                            else None
+                        ),
+                    }
+                    for forecast in forecasts
+                ],
             }
         )
     return {"items": items, "page": page, "page_size": page_size, "total": total}
@@ -187,7 +253,7 @@ async def overview(
 ) -> dict:
     agent = await scoped_agent(session, agent_id, user)
     run = await active_run(session)
-    balances = (
+    balance_rows = (
         await session.execute(
             select(AgentProviderBalance, Provider)
             .join(Provider, Provider.id == AgentProviderBalance.provider_id)
@@ -195,15 +261,28 @@ async def overview(
                 AgentProviderBalance.agent_id == agent.id,
                 AgentProviderBalance.scenario_run_id == run.id,
             )
-            .order_by(Provider.code)
+            .order_by(
+                Provider.code,
+                AgentProviderBalance.source_timestamp.desc(),
+                AgentProviderBalance.received_timestamp.desc(),
+                AgentProviderBalance.id.desc(),
+            )
         )
     ).all()
+    latest_balances: dict[uuid.UUID, tuple[AgentProviderBalance, Provider]] = {}
+    for balance, provider in balance_rows:
+        latest_balances.setdefault(provider.id, (balance, provider))
+    balances = list(latest_balances.values())
     cash = (
         (
             await session.execute(
                 select(CashSnapshot)
                 .where(CashSnapshot.agent_id == agent.id, CashSnapshot.scenario_run_id == run.id)
-                .order_by(CashSnapshot.source_timestamp.desc())
+                .order_by(
+                    CashSnapshot.source_timestamp.desc(),
+                    CashSnapshot.received_timestamp.desc(),
+                    CashSnapshot.id.desc(),
+                )
             )
         )
         .scalars()
@@ -232,7 +311,14 @@ async def overview(
         .all()
     )
     return {
-        "agent": {"id": agent.id, "code": agent.code, "name": agent.name, "area": agent.area},
+        "agent": {
+            "id": agent.id,
+            "code": agent.code,
+            "name": agent.name,
+            "area": agent.area,
+            "latitude": agent.latitude,
+            "longitude": agent.longitude,
+        },
         "active_scenario": {"code": run.code, "label": run.label},
         "shared_cash": None
         if cash is None
@@ -386,6 +472,8 @@ async def nearby(
                 "name": item.name,
                 "area": item.area,
                 "distance_km": round(km, 2),
+                "latitude": item.latitude,
+                "longitude": item.longitude,
             }
             for item, km in ordered
         ],

@@ -1,6 +1,7 @@
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import field_validator
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,6 +25,20 @@ class Settings(BaseSettings):
     missing_after_minutes: int = 15
     anomaly_config_path: str = "app/services/anomaly_thresholds.yaml"
     enable_isolation_forest: bool = True
+    rate_limit_enabled: bool = True
+    rate_limit_storage_uri: str = "memory://"
+    rate_limit_trust_proxy_headers: bool = True
+    openai_api_key: SecretStr | None = None
+    openai_model: str = "gpt-5.4-mini"
+    ai_enabled: bool = False
+    ai_max_output_tokens: int = 500
+    ai_timeout_seconds: float = 12
+    ai_cache_ttl_minutes: int = 60
+    ai_input_cost_per_million: float = 0
+    ai_output_cost_per_million: float = 0
+    ai_pricing_version: str = "unconfigured"
+    validation_data_dir: Path = Path("../data/validation")
+    commit_identifier: str = "unknown"
 
     @field_validator("cors_origins", mode="before")
     @classmethod

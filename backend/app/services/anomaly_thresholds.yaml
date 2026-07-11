@@ -15,6 +15,7 @@ failure:
 operating_hours:
   start_hour: 7
   end_hour: 22
+  timezone: Asia/Dhaka
 ledger_conflict:
   tolerance_bdt: 1
 isolation_forest:
@@ -22,4 +23,3 @@ isolation_forest:
   score_threshold: -0.05
 deduplication:
   cooldown_minutes: 30
-

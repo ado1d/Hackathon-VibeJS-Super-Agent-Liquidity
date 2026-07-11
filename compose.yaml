@@ -20,6 +20,9 @@ services:
     env_file: ${ENV_FILE:-.env}
     environment:
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-super_agent}:${POSTGRES_PASSWORD:-change-me}@postgres:5432/${POSTGRES_DB:-super_agent}
+      VALIDATION_DATA_DIR: /app/data/validation
+    volumes:
+      - ./data/validation:/app/data/validation:ro
     depends_on:
       postgres:
         condition: service_healthy

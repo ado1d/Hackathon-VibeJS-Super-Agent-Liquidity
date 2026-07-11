@@ -89,20 +89,30 @@ async def transition(
 
 
 async def claim(session: AsyncSession, alert: Alert, actor: User) -> Alert:
-    previous = str(alert.owner_user_id) if alert.owner_user_id else None
-    alert.owner_user_id = actor.id
-    alert.updated_at = utcnow()
+    locked = (
+        await session.execute(select(Alert).where(Alert.id == alert.id).with_for_update())
+    ).scalar_one()
+    if locked.owner_user_id == actor.id:
+        return locked
+    if locked.owner_user_id is not None:
+        raise AppError(
+            "ALERT_ALREADY_CLAIMED",
+            "This alert is already owned by another reviewer.",
+            409,
+        )
+    locked.owner_user_id = actor.id
+    locked.updated_at = utcnow()
     add_alert_event(
         session,
-        alert.id,
+        locked.id,
         "owner_changed",
         actor.id,
-        details={"previous_owner": previous, "owner": str(actor.id)},
+        details={"previous_owner": None, "owner": str(actor.id)},
     )
-    add_audit(session, "alert.claimed", actor.id, "alert", str(alert.id))
+    add_audit(session, "alert.claimed", actor.id, "alert", str(locked.id))
     await session.commit()
-    await session.refresh(alert)
-    return alert
+    await session.refresh(locked)
+    return locked
 
 
 async def add_note(

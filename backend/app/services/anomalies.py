@@ -4,6 +4,7 @@ from decimal import Decimal
 from pathlib import Path
 from statistics import mean, pstdev
 from typing import Any, Iterable
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import yaml  # type: ignore[import-untyped]
@@ -148,10 +149,13 @@ def failure_rate_spike(items: Iterable[Any], config: dict[str, Any]) -> Detectio
 
 def outside_operating_hours(items: Iterable[Any], config: dict[str, Any]) -> Detection | None:
     cfg = config["operating_hours"]
+    timezone = ZoneInfo(cfg.get("timezone", "Asia/Dhaka"))
     outside = [
         t
         for t in successful(items)
-        if not cfg["start_hour"] <= _v(t, "occurred_at").hour < cfg["end_hour"]
+        if not cfg["start_hour"]
+        <= _v(t, "occurred_at").astimezone(timezone).hour
+        < cfg["end_hour"]
     ]
     if not outside:
         return None
@@ -162,7 +166,10 @@ def outside_operating_hours(items: Iterable[Any], config: dict[str, Any]) -> Det
         {
             "count": len(outside),
             "operating_window": f"{cfg['start_hour']:02}:00-{cfg['end_hour']:02}:00",
-            "timestamps": [_v(t, "occurred_at").isoformat() for t in outside[:10]],
+            "timestamps": [
+                _v(t, "occurred_at").astimezone(timezone).isoformat() for t in outside[:10]
+            ],
+            "timezone": str(timezone),
         },
     )
 

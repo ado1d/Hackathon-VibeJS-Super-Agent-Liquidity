@@ -28,7 +28,7 @@ from app.security import hash_password
 from app.services.audit import add_audit
 from app.services.scenarios.calculator import calculate_and_alert
 from app.services.scenarios.seed import build_transaction_rows, derive_balances
-from app.services.scenarios.specs import ANCHOR, SPECS, ScenarioSpec
+from app.services.scenarios.specs import ANCHOR, SPECS
 
 
 async def ensure_reference_data(session: AsyncSession) -> None:
@@ -129,8 +129,6 @@ async def recompute_agent(session: AsyncSession, run: ScenarioRun, agent_id: uui
     providers = list((await session.execute(select(Provider).order_by(Provider.code))).scalars())
 
     balances: list[Decimal] = []
-    openings: list[Decimal] = []
-    statuses: list[FeedStatus] = []
     for provider in providers:
         balance = (
             (
@@ -141,7 +139,11 @@ async def recompute_agent(session: AsyncSession, run: ScenarioRun, agent_id: uui
                         AgentProviderBalance.provider_id == provider.id,
                         AgentProviderBalance.scenario_run_id == run.id,
                     )
-                    .order_by(AgentProviderBalance.source_timestamp.desc())
+                    .order_by(
+                        AgentProviderBalance.source_timestamp.desc(),
+                        AgentProviderBalance.received_timestamp.desc(),
+                        AgentProviderBalance.id.desc(),
+                    )
                 )
             )
             .scalars()
@@ -150,15 +152,17 @@ async def recompute_agent(session: AsyncSession, run: ScenarioRun, agent_id: uui
         if balance is None:
             continue
         balances.append(balance.balance)
-        openings.append(balance.balance)
-        statuses.append(balance.quality_status)
 
     cash = (
         (
             await session.execute(
                 select(CashSnapshot)
                 .where(CashSnapshot.agent_id == agent_id, CashSnapshot.scenario_run_id == run.id)
-                .order_by(CashSnapshot.source_timestamp.desc())
+                .order_by(
+                    CashSnapshot.source_timestamp.desc(),
+                    CashSnapshot.received_timestamp.desc(),
+                    CashSnapshot.id.desc(),
+                )
             )
         )
         .scalars()
@@ -186,20 +190,42 @@ async def recompute_agent(session: AsyncSession, run: ScenarioRun, agent_id: uui
         delete(Forecast).where(Forecast.agent_id == agent_id, Forecast.scenario_run_id == run.id)
     )
 
-    provider_pair = (openings[0], openings[1])
-    status_pair = (statuses[0], statuses[1])
-    refresh_spec = ScenarioSpec(
-        "refresh",
-        run.label,
-        run.seed,
-        provider_pair,
-        cash.balance,
-        status_pair,
-        run.expected_labels,
-    )
-    await calculate_and_alert(
-        session, refresh_spec, run, agent, providers, rows, balances, cash.balance
-    )
+    spec = SPECS.get(run.code.upper())
+    if spec is None:
+        raise AppError(
+            "SCENARIO_CONTRACT_MISSING",
+            "The active scenario does not have a recomputation contract.",
+            409,
+        )
+    await calculate_and_alert(session, spec, run, agent, providers, rows, balances, cash.balance)
+
+
+async def update_measured_results(session: AsyncSession, run: ScenarioRun) -> None:
+    """Refresh measured scenario outputs inside the caller's transaction."""
+    alert_count = (
+        await session.execute(select(func.count(Alert.id)).where(Alert.scenario_run_id == run.id))
+    ).scalar_one()
+    critical_count = (
+        await session.execute(
+            select(func.count(Alert.id)).where(
+                Alert.scenario_run_id == run.id, Alert.severity == "critical"
+            )
+        )
+    ).scalar_one()
+    nearest_shortage = (
+        await session.execute(
+            select(func.min(Forecast.shortage_minutes)).where(
+                Forecast.scenario_run_id == run.id, Forecast.shortage_minutes.is_not(None)
+            )
+        )
+    ).scalar_one()
+    run.measured_results = {
+        "alert_count": alert_count,
+        "critical_alert_count": critical_count,
+        "nearest_shortage_minutes": (
+            float(nearest_shortage) if nearest_shortage is not None else None
+        ),
+    }
 
 
 async def load_scenario(
@@ -293,31 +319,7 @@ async def load_scenario(
     await calculate_and_alert(session, spec, run, agent, providers, rows, balances, cash)
     await session.flush()
 
-    alert_count = (
-        await session.execute(select(func.count(Alert.id)).where(Alert.scenario_run_id == run.id))
-    ).scalar_one()
-    critical_count = (
-        await session.execute(
-            select(func.count(Alert.id)).where(
-                Alert.scenario_run_id == run.id, Alert.severity == "critical"
-            )
-        )
-    ).scalar_one()
-    nearest_shortage = (
-        await session.execute(
-            select(func.min(Forecast.shortage_minutes)).where(
-                Forecast.scenario_run_id == run.id, Forecast.shortage_minutes.is_not(None)
-            )
-        )
-    ).scalar_one()
-
-    run.measured_results = {
-        "alert_count": alert_count,
-        "critical_alert_count": critical_count,
-        "nearest_shortage_minutes": float(nearest_shortage)
-        if nearest_shortage is not None
-        else None,
-    }
+    await update_measured_results(session, run)
     run.completed_at = ANCHOR
 
     add_audit(

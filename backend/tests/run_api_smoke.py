@@ -57,10 +57,16 @@ async def main() -> None:
                 json={"assigned_role": "risk", "note": "Review requested."},
             )
         ).status_code == 200
-        switched = await client.post(
+        removed_switch = await client.post(
             "/api/v1/auth/switch-role", headers=headers, json={"role": "risk"}
         )
-        risk_headers = {"Authorization": f"Bearer {switched.json()['access_token']}"}
+        assert removed_switch.status_code == 404
+        risk_login = await client.post(
+            "/api/v1/auth/login", json={"username": "risk", "password": "demo-pass"}
+        )
+        assert risk_login.status_code == 200
+        assert risk_login.json()["landing_path"] == "/review-queue"
+        risk_headers = {"Authorization": f"Bearer {risk_login.json()['access_token']}"}
         assert (
             await client.post(f"/api/v1/alerts/{alert_id}/in-progress", headers=risk_headers)
         ).status_code == 200
@@ -111,6 +117,21 @@ async def main() -> None:
             "quarantined": 1,
             "forecast_recalculation": "completed",
         }
+        ai_status = await client.get("/api/v1/ai/status", headers=admin_headers)
+        assert ai_status.status_code == 200 and ai_status.json()["enabled"] is False
+        ai_disabled = await client.post(
+            f"/api/v1/alerts/{alert_id}/summarize", headers=admin_headers
+        )
+        assert ai_disabled.status_code == 503
+        assert ai_disabled.json()["error"]["code"] == "AI_DISABLED"
+        limited = None
+        for _ in range(3):
+            limited = await client.post(
+                "/api/v1/auth/login", json={"username": "missing", "password": "wrong"}
+            )
+        assert limited is not None and limited.status_code == 429, limited.text
+        assert limited.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
+        assert limited.headers["retry-after"]
     app.dependency_overrides.clear()
     await engine.dispose()
     print("api smoke: auth, RBAC, overview, workflow, quarantine, and recomputation passed")

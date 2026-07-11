@@ -1,12 +1,11 @@
 import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 import { post } from "./api";
-import type { Role, TokenResponse, User } from "./types";
+import type { TokenResponse, User } from "./types";
 
 interface AuthValue {
   user: User | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<TokenResponse>;
   logout: () => void;
-  switchRole: (role: Role) => Promise<void>;
 }
 const AuthContext = createContext<AuthValue | null>(null);
 
@@ -22,15 +21,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AuthValue>(
     () => ({
       user,
-      login: async (username, password) =>
-        save(await post<TokenResponse>("/auth/login", { username, password })),
+      login: async (username, password) => {
+        const result = await post<TokenResponse>("/auth/login", {
+          username,
+          password,
+        });
+        save(result);
+        return result;
+      },
       logout: () => {
         localStorage.removeItem("access_token");
         localStorage.removeItem("user");
         setUser(null);
       },
-      switchRole: async (role) =>
-        save(await post<TokenResponse>("/auth/switch-role", { role })),
     }),
     [user],
   );

@@ -5,10 +5,13 @@ import uuid
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
-from app.api import admin, agents, alerts, auth, health, metrics, users
+from app.api import admin, agents, ai, alerts, auth, demo, health, metrics, users
 from app.config import get_settings
 from app.errors import AppError, app_error_handler, validation_error_handler
+from app.rate_limit import limiter, rate_limit_handler
 
 settings = get_settings()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -28,6 +31,9 @@ app.add_middleware(
 )
 app.add_exception_handler(AppError, app_error_handler)
 app.add_exception_handler(RequestValidationError, validation_error_handler)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 
 @app.middleware("http")
@@ -52,8 +58,10 @@ for router in (
     health.router,
     auth.router,
     users.router,
+    demo.router,
     agents.router,
     alerts.router,
+    ai.router,
     metrics.router,
     admin.router,
 ):

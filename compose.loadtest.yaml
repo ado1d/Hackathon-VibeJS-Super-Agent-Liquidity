@@ -1,0 +1,23 @@
+services:
+  backend:
+    environment:
+      RATE_LIMIT_ENABLED: "false"
+    volumes:
+      - ./data/validation:/app/data/validation
+
+  locust:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.loadtest
+    profiles: ["loadtest"]
+    environment:
+      LOCUST_HOST: http://backend:8000
+      VALIDATION_DATA_DIR: /app/data/validation
+    volumes:
+      - ./data/validation:/app/data/validation
+    command: >-
+      locust -f load/locustfile.py --headless --users 10 --spawn-rate 2
+      --run-time 60s --host http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy

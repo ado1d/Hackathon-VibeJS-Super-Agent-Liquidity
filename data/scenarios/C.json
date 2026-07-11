@@ -1,1 +1,1 @@
-{"code":"C","seed":103,"label":"Delayed and conflicting data","expected":{"safe_fallback":true,"precise_time_suppressed":true}}
+{"code":"C","seed":103,"label":"Delayed and conflicting data","expected":{"safe_fallback":true,"precise_time_suppressed":true,"expected_anomaly_types":["ledger_balance_conflict"]}}

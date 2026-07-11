@@ -20,6 +20,7 @@ export interface TokenResponse {
   token_type: string;
   expires_in: number;
   user: User;
+  landing_path: string;
 }
 export interface Agent {
   id: string;
@@ -29,6 +30,17 @@ export interface Agent {
   nearest_shortage_minutes: number | null;
   health: string;
   alert_count: number;
+  balances: {
+    cash: number | null;
+    providers: Record<string, number>;
+  };
+  pressure_points: {
+    resource_type: string;
+    provider_id: string | null;
+    current_balance: number;
+    minimum_buffer: number;
+    shortage_minutes: number | null;
+  }[];
 }
 export interface Forecast {
   resource_type: string;
@@ -78,7 +90,14 @@ export interface ProviderBalance {
   quality_details: Record<string, unknown>;
 }
 export interface Overview {
-  agent: { id: string; code: string; name: string; area: string };
+  agent: {
+    id: string;
+    code: string;
+    name: string;
+    area: string;
+    latitude: string;
+    longitude: string;
+  };
   active_scenario: { code: string; label: string };
   shared_cash: {
     balance: string;
@@ -89,4 +108,21 @@ export interface Overview {
   forecasts: Forecast[];
   alerts: Alert[];
   data_quality_warning: boolean;
+}
+
+export interface AIStatus {
+  enabled: boolean;
+  model: string | null;
+  features: string[];
+  core_workflows_available: boolean;
+}
+
+export interface AIResponse {
+  feature: "translate" | "summarize" | "recommendations";
+  source: "openai" | "cache" | "deterministic_fallback";
+  cached: boolean;
+  model: string;
+  prompt_version: string;
+  result: Record<string, unknown>;
+  uncertainty: string;
 }

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Database, Play, RotateCcw } from "lucide-react";
 import { api, post } from "../api";
+import { toast } from "sonner";
 
 const scenarios = [
   {
@@ -54,14 +55,18 @@ export function AdminScenarios() {
         `/admin/scenarios/${code}/load`,
       ),
     onSuccess: () => {
+      toast.success("Scenario loaded and analytics recomputed");
       void client.invalidateQueries();
     },
+    onError: (error) => toast.error(error.message),
   });
   const reset = useMutation({
     mutationFn: () => post("/admin/scenarios/reset"),
     onSuccess: () => {
+      toast.success("Demo state reset");
       void client.invalidateQueries();
     },
+    onError: (error) => toast.error(error.message),
   });
   return (
     <div className="page">

@@ -1,1 +1,1 @@
-{"code":"B","seed":102,"label":"Shared-cash pressure with unusual activity","expected":{"cash_shortage":true,"repeated_near_identical":true}}
+{"code":"B","seed":102,"label":"Shared-cash pressure with unusual activity","expected":{"cash_shortage":true,"expected_anomaly_types":["repeated_near_identical","velocity_spike"]}}

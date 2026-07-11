@@ -77,6 +77,7 @@ export function WorkflowActionBar({
             key={b.action}
             onClick={() => onAction(b.action, b.body)}
             disabled={disabled}
+            title={disabled ? "Wait for the current audited action to finish." : b.label}
           >
             {b.label}
           </button>
