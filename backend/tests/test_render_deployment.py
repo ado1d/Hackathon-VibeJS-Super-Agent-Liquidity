@@ -19,7 +19,7 @@ def test_render_blueprint_enables_structured_ai_without_committing_secret() -> N
     frontend = services["super-agent-frontend"]
     backend_env = _env(backend)
 
-    assert backend["branch"] == "ui-fix"
+    assert backend["branch"] == "vercel-openai-zip-implementation"
     assert backend["healthCheckPath"] == "/api/v1/health"
     assert backend_env["AI_ENABLED"]["value"] == "true"
     assert backend_env["OPENAI_MODEL"]["value"] == "gpt-5.4-mini"

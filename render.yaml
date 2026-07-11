@@ -17,7 +17,7 @@ services:
     runtime: docker
     plan: free
     region: singapore
-    branch: ui-fix
+    branch: vercel-openai-zip-implementation
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/v1/health
@@ -63,14 +63,14 @@ services:
       - key: VALIDATION_DATA_DIR
         value: /app/data/validation
       - key: COMMIT_IDENTIFIER
-        value: render-ui-fix
+        value: vercel-openai-zip-implementation
 
   - type: web
     name: super-agent-frontend
     runtime: docker
     plan: free
     region: singapore
-    branch: ui-fix
+    branch: vercel-openai-zip-implementation
     dockerfilePath: ./frontend/Dockerfile
     dockerContext: ./frontend
     healthCheckPath: /healthz
