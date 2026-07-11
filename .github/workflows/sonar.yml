@@ -64,16 +64,18 @@ jobs:
 
       # The actual analysis. The action reads sonar-project.properties from
       # the repo root and posts the SONAR_TOKEN from the repo secret.
+      # NEW (correct)
       - name: SonarCloud scan
-        uses: SonarSource/sonarcloud-scan-action@v2.2.0
+        uses: SonarSource/sonarqube-scan-action@v8.2.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Optional: fail the workflow if the SonarCloud Quality Gate is red.
       # Comment this out if you don't want PRs blocked by quality gate failures.
+  # NEW (correct)
       - name: SonarCloud Quality Gate
-        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
-        timeout-minutes: 5
+        uses: SonarSource/sonarqube-quality-gate-action@v1.2.0
+        timeout-minutes: 10
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
