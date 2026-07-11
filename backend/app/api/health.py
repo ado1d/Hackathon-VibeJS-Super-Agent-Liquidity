@@ -16,4 +16,3 @@ async def health() -> dict[str, str]:
 async def ready(session: AsyncSession = Depends(get_session)) -> dict[str, str]:
     await session.execute(text("SELECT 1"))
     return {"status": "ready", "database": "reachable"}
-

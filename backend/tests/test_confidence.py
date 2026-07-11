@@ -9,10 +9,15 @@ def test_fresh_confidence_is_full() -> None:
 
 
 def test_missing_feed_penalties_are_explained() -> None:
-    result = calculate_confidence(ConfidenceInput(feed_status=FeedStatus.MISSING,
-                                                   missing_intervals=2, sample_count=4,
-                                                   volatility=0.8, baseline_available=False))
+    result = calculate_confidence(
+        ConfidenceInput(
+            feed_status=FeedStatus.MISSING,
+            missing_intervals=2,
+            sample_count=4,
+            volatility=0.8,
+            baseline_available=False,
+        )
+    )
     assert result.score == 0.14
     assert result.suppress_precise_time
     assert len(result.reasons) == 5
-

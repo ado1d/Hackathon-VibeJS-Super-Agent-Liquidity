@@ -1,0 +1,79 @@
+name: SonarCloud
+
+# Runs on every push to any branch and on every pull request.
+# Produces:
+#   - A fresh SonarCloud analysis of the new code
+#   - PR decoration comments showing new issues inline
+#   - A Quality Gate status check on the PR (fails the PR if the gate fails)
+#
+# One-time setup (see docs/sonarqube-setup.md for screenshots):
+#   1. Sign in to https://sonarcloud.io with your GitHub account
+#   2. Import this repository (SonarCloud will detect it automatically)
+#   3. Copy the SONAR_TOKEN from My Account > Security
+#   4. Add it as a GitHub repository secret named SONAR_TOKEN
+#   5. Push a commit — this workflow will run
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+# Prevent two analyses from racing on the same branch when a PR is opened
+# and then immediately pushed to.
+concurrency:
+  group: sonar-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  sonar:
+    name: SonarCloud scan
+    runs-on: ubuntu-latest
+    steps:
+      # SonarCloud needs full git history for "new code" detection (blame).
+      # The default checkout depth of 1 is not enough.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Don't analyse code that doesn't pass the existing gates — saves
+      # SonarCloud minutes and produces a cleaner signal.
+      - name: Backend lint + tests with coverage
+        working-directory: backend
+        env:
+          DATABASE_URL: sqlite+aiosqlite:///./test.db
+          JWT_SECRET: local-ci-secret-at-least-32-characters-long-aaa
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          ruff check app tests
+          mypy app
+          # --cov-report=xml writes backend/coverage.xml (consumed by SonarCloud)
+          python -m pytest --cov=app --cov-report=xml --cov-report=term -q
+
+      - name: Frontend lint + tests with coverage
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          # --coverage writes frontend/coverage/lcov.info (consumed by SonarCloud)
+          npm test -- --run --coverage
+
+      # The actual analysis. The action reads sonar-project.properties from
+      # the repo root and posts the SONAR_TOKEN from the repo secret.
+      - name: SonarCloud scan
+        uses: SonarSource/sonarcloud-scan-action@v2.2.0
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Optional: fail the workflow if the SonarCloud Quality Gate is red.
+      # Comment this out if you don't want PRs blocked by quality gate failures.
+      - name: SonarCloud Quality Gate
+        uses: sonarsource/sonarqube-quality-gate-action@v1.1.0
+        timeout-minutes: 5
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

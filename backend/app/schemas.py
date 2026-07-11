@@ -5,8 +5,15 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.enums import (AlertStatus, FeedStatus, ResolutionCode, Role, Severity,
-                       TransactionStatus, TransactionType)
+from app.enums import (
+    AlertStatus,
+    FeedStatus,
+    ResolutionCode,
+    Role,
+    Severity,
+    TransactionStatus,
+    TransactionType,
+)
 
 
 class ORMModel(BaseModel):

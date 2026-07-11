@@ -10,5 +10,6 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserView)
 async def me(user: User = Depends(current_user)) -> UserView:
-    return UserView.model_validate(user).model_copy(update={"permissions": permissions_for(user.role)})
-
+    return UserView.model_validate(user).model_copy(
+        update={"permissions": permissions_for(user.role)}
+    )

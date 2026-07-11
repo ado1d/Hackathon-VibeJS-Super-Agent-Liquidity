@@ -1,4 +1,5 @@
 """Dependency-light integration smoke runner for constrained demo hosts."""
+
 import asyncio
 
 from sqlalchemy import func, select
@@ -17,12 +18,22 @@ async def main() -> None:
     factory = async_sessionmaker(engine, expire_on_commit=False)
     async with factory() as session:
         run = await load_scenario(session, "B")
-        types = set((await session.execute(select(Alert.alert_type).where(
-            Alert.scenario_run_id == run.id))).scalars())
+        types = set(
+            (
+                await session.execute(
+                    select(Alert.alert_type).where(Alert.scenario_run_id == run.id)
+                )
+            ).scalars()
+        )
         assert {"shared_cash_liquidity", "repeated_near_identical"} <= types, types
         run = await load_scenario(session, "C")
-        fallback = (await session.execute(select(func.count(Forecast.id)).where(
-            Forecast.scenario_run_id == run.id, Forecast.reliable.is_(False)))).scalar_one()
+        fallback = (
+            await session.execute(
+                select(func.count(Forecast.id)).where(
+                    Forecast.scenario_run_id == run.id, Forecast.reliable.is_(False)
+                )
+            )
+        ).scalar_one()
         assert fallback >= 1
     await engine.dispose()
     print("backend smoke: scenarios B/C, alerts, and confidence fallback passed")
