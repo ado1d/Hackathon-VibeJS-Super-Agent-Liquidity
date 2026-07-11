@@ -39,9 +39,7 @@ def test_higher_consumption_cannot_increase_lead_time(
 
 
 @given(buffer=money, consumption=positive, extra=positive)
-def test_higher_balance_cannot_reduce_lead_time(
-    buffer: int, consumption: int, extra: int
-) -> None:
+def test_higher_balance_cannot_reduce_lead_time(buffer: int, consumption: int, extra: int) -> None:
     low_balance = Decimal(buffer + 1)
     rates = RateInput(Decimal(consumption), Decimal(0), 60)
     low = forecast_liquidity(low_balance, Decimal(buffer), rates)

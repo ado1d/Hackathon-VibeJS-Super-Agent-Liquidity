@@ -60,12 +60,16 @@ async def test_claims_are_atomic_and_same_owner_is_idempotent(pg_factory) -> Non
     async with pg_factory() as session:
         run = await load_scenario(session, "D")
         alert_id = (
-            await session.execute(select(Alert.id).where(Alert.scenario_run_id == run.id))
-        ).scalars().first()
+            (await session.execute(select(Alert.id).where(Alert.scenario_run_id == run.id)))
+            .scalars()
+            .first()
+        )
         operations_id = (
             await session.execute(select(User.id).where(User.role == Role.OPERATIONS))
         ).scalar_one()
-        risk_id = (await session.execute(select(User.id).where(User.role == Role.RISK))).scalar_one()
+        risk_id = (
+            await session.execute(select(User.id).where(User.role == Role.RISK))
+        ).scalar_one()
 
     async def attempt(user_id):
         async with pg_factory() as session:

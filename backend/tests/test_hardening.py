@@ -32,11 +32,16 @@ async def session():
 async def test_scenario_anomaly_contracts_are_exact(session, code: str) -> None:
     run = await load_scenario(session, code)
     non_anomaly = {"provider_liquidity", "shared_cash_liquidity", "data_quality"}
-    detected = set(
-        (
-            await session.execute(select(Alert.alert_type).where(Alert.scenario_run_id == run.id))
-        ).scalars()
-    ) - non_anomaly
+    detected = (
+        set(
+            (
+                await session.execute(
+                    select(Alert.alert_type).where(Alert.scenario_run_id == run.id)
+                )
+            ).scalars()
+        )
+        - non_anomaly
+    )
     assert detected == set(SPECS[code].expected["expected_anomaly_types"])
     alerts = (
         (await session.execute(select(Alert).where(Alert.scenario_run_id == run.id)))
@@ -72,13 +77,19 @@ async def test_transaction_import_appends_snapshots_without_mutating_history(ses
     run = await load_scenario(session, "A")
     admin = (await session.execute(select(User).where(User.role == Role.ADMIN))).scalar_one()
     original_provider = (
-        await session.execute(
-            select(AgentProviderBalance).order_by(AgentProviderBalance.source_timestamp)
+        (
+            await session.execute(
+                select(AgentProviderBalance).order_by(AgentProviderBalance.source_timestamp)
+            )
         )
-    ).scalars().first()
+        .scalars()
+        .first()
+    )
     original_cash = (
-        await session.execute(select(CashSnapshot).order_by(CashSnapshot.source_timestamp))
-    ).scalars().first()
+        (await session.execute(select(CashSnapshot).order_by(CashSnapshot.source_timestamp)))
+        .scalars()
+        .first()
+    )
     assert original_provider is not None and original_cash is not None
     original_provider_value = original_provider.balance
     original_cash_value = original_cash.balance
@@ -104,12 +115,16 @@ async def test_transaction_import_appends_snapshots_without_mutating_history(ses
         session,
     )
     assert result["accepted"] == 1
-    assert (await session.get(AgentProviderBalance, original_provider.id)).balance == original_provider_value
+    assert (
+        await session.get(AgentProviderBalance, original_provider.id)
+    ).balance == original_provider_value
     assert (await session.get(CashSnapshot, original_cash.id)).balance == original_cash_value
     assert (
         await session.execute(select(func.count(AgentProviderBalance.id)))
     ).scalar_one() == before_provider_count + 1
-    assert (await session.execute(select(func.count(CashSnapshot.id)))).scalar_one() == before_cash_count + 1
+    assert (
+        await session.execute(select(func.count(CashSnapshot.id)))
+    ).scalar_one() == before_cash_count + 1
     assert run.measured_results["alert_count"] >= 1
 
 
@@ -123,8 +138,10 @@ async def test_isolation_forest_runtime_toggle_is_explicitly_not_persisted(sessi
 async def test_claim_is_idempotent_for_owner_and_rejects_another_claimant(session) -> None:
     run = await load_scenario(session, "B")
     alert = (
-        await session.execute(select(Alert).where(Alert.scenario_run_id == run.id))
-    ).scalars().first()
+        (await session.execute(select(Alert).where(Alert.scenario_run_id == run.id)))
+        .scalars()
+        .first()
+    )
     operations = (
         await session.execute(select(User).where(User.role == Role.OPERATIONS))
     ).scalar_one()

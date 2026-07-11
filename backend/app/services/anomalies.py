@@ -153,9 +153,7 @@ def outside_operating_hours(items: Iterable[Any], config: dict[str, Any]) -> Det
     outside = [
         t
         for t in successful(items)
-        if not cfg["start_hour"]
-        <= _v(t, "occurred_at").astimezone(timezone).hour
-        < cfg["end_hour"]
+        if not cfg["start_hour"] <= _v(t, "occurred_at").astimezone(timezone).hour < cfg["end_hour"]
     ]
     if not outside:
         return None

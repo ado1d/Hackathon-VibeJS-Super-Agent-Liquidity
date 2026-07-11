@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.git/
+*.tsbuildinfo
+.env
+.env.local
+Dockerfile
+docker-compose*.yml
+Makefile
+README.md
+LICENSE

@@ -1,0 +1,78 @@
+# ============================================================
+# Render Blueprint — one-click deploy
+# ============================================================
+# Docs: https://render.com/docs/blueprint-spec
+#
+# After pushing this file to GitHub:
+# 1. Go to https://dashboard.render.com → New → Blueprint
+# 2. Select this repository
+# 3. Render detects render.yaml and creates all 3 services
+# 4. Click "Apply" — wait ~10 min for first deploy
+# 5. Update CORS_ORIGINS in the backend env with your frontend URL
+# 6. (Optional) Set OPENAI_API_KEY + AI_ENABLED=true for AI features
+# ============================================================
+
+databases:
+  - name: super-agent-db
+    plan: free
+    databaseName: super_agent
+    user: super_agent
+    ipAllowList: []
+
+services:
+  # --- Backend (FastAPI) ---
+  - type: web
+    name: super-agent-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: super-agent-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: APP_ENV
+        value: production
+      - key: CORS_ORIGINS
+        # Update this after first deploy with your frontend URL, e.g.:
+        # https://super-agent-frontend-xxxx.onrender.com
+        value: "*"
+      - key: AI_ENABLED
+        value: "false"
+      - key: OPENAI_API_KEY
+        sync: false  # Set manually in dashboard if you want AI
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_STORAGE_URI
+        value: memory://
+      - key: RATE_LIMIT_TRUST_PROXY_HEADERS
+        value: "true"
+      - key: VALIDATION_DATA_DIR
+        value: /app/data/validation
+      - key: COMMIT_IDENTIFIER
+        value: production
+
+  # --- Frontend (Vite SPA served by Nginx) ---
+  - type: web
+    name: super-agent-frontend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
+    autoDeploy: true
+    envVars:
+      - key: VITE_API_BASE
+        value: /api/v1
+      # This is read at container startup by nginx.conf.template.
+      # After first deploy, update this to your backend's public URL, e.g.:
+      # https://super-agent-backend-xxxx.onrender.com
+      # then redeploy the frontend.
+      - key: BACKEND_URL
+        value: http://backend:8000

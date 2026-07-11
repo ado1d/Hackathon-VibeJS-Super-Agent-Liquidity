@@ -75,9 +75,7 @@ async def validation_payload(session: AsyncSession) -> dict:
         "median_shortage_time_minutes": median(shortage_times) if shortage_times else None,
         "anomaly_detection_score": round(len(matching) / max(1, len(detected)), 4),
         "anomaly_detection_coverage": round(len(matching) / max(1, len(expected)), 4),
-        "unexpected_anomaly_rate": round(
-            len(detected - expected) / max(1, len(detected)), 4
-        ),
+        "unexpected_anomaly_rate": round(len(detected - expected) / max(1, len(detected)), 4),
         "explanation_coverage": len(complete) / len(alerts) if alerts else 1.0,
         "alert_workflow_audit_coverage": len([a for a in alerts if a.id in event_alert_ids])
         / len(alerts)

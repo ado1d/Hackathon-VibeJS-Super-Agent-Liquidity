@@ -18,6 +18,7 @@ import { EvidencePanel } from "../components/EvidencePanel";
 import { StatusBadge } from "../components/StatusBadge";
 import { Timeline } from "../components/Timeline";
 import { WorkflowActionBar } from "../components/WorkflowActionBar";
+import { AIResultDisplay } from "../components/AIResultDisplay";
 import { labels, type Language } from "../i18n/templates";
 import type { AIResponse, AIStatus, Alert } from "../types";
 import { toast } from "sonner";
@@ -222,14 +223,7 @@ export function AlertDetail() {
           </div>
           {aiAction.error && <p className="error ai-content">{aiAction.error.message}</p>}
           {aiResult && (
-            <div className="ai-content">
-              <div className="badge-row">
-                <StatusBadge value={aiResult.source} />
-                <span>{aiResult.prompt_version}</span>
-              </div>
-              <pre>{JSON.stringify(aiResult.result, null, 2)}</pre>
-              <p><strong>Required uncertainty:</strong> {aiResult.uncertainty}</p>
-            </div>
+            <AIResultDisplay result={aiResult} />
           )}
         </section>
       )}

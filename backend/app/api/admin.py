@@ -37,7 +37,11 @@ router = APIRouter(prefix="/admin", tags=["administration"])
 
 def _utc(value: datetime) -> datetime:
     """Normalize SQLite's timezone-naive round trip for deterministic comparisons."""
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
+    return (
+        value.replace(tzinfo=timezone.utc)
+        if value.tzinfo is None
+        else value.astimezone(timezone.utc)
+    )
 
 
 @router.post("/scenarios/{scenario_code}/load")
@@ -188,9 +192,9 @@ async def import_transactions(
 
     received_at = datetime.now(timezone.utc)
     for agent_id, agent_items in by_agent.items():
-        provider_groups: dict[
-            uuid.UUID, list[tuple[TransactionImportItem, Agent, Provider]]
-        ] = defaultdict(list)
+        provider_groups: dict[uuid.UUID, list[tuple[TransactionImportItem, Agent, Provider]]] = (
+            defaultdict(list)
+        )
         for accepted_item in agent_items:
             provider_groups[accepted_item[2].id].append(accepted_item)
 
@@ -270,9 +274,7 @@ async def import_transactions(
             if item.status != TransactionStatus.SUCCESS:
                 continue
             cash_delta += (
-                item.amount
-                if item.transaction_type == TransactionType.CASH_IN
-                else -item.amount
+                item.amount if item.transaction_type == TransactionType.CASH_IN else -item.amount
             )
         cash_source_at = max(
             _utc(previous_cash.source_timestamp),

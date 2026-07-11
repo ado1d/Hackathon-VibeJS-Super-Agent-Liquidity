@@ -33,8 +33,7 @@ async def demo_status(
         else {"code": active.code, "label": active.label, "seed": active.seed},
         "can_load": user.role == Role.ADMIN,
         "available_scenarios": [
-            {"code": code, "label": SPECS[code].label}
-            for code in ("A", "B", "C", "D")
+            {"code": code, "label": SPECS[code].label} for code in ("A", "B", "C", "D")
         ]
         if user.role == Role.ADMIN
         else [],

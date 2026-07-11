@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, KeyRound, ShieldCheck, Sparkles, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import type { Role } from "../types";
@@ -23,6 +23,10 @@ export function Login() {
   const navigate = useNavigate();
   const [busy, setBusy] = useState<Role | null>(null);
   const [error, setError] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [formBusy, setFormBusy] = useState(false);
+
   async function enter(role: Role) {
     setBusy(role);
     setError("");
@@ -35,6 +39,21 @@ export function Login() {
       setBusy(null);
     }
   }
+
+  async function submitForm(event: React.FormEvent) {
+    event.preventDefault();
+    setFormBusy(true);
+    setError("");
+    try {
+      const result = await login(username, password);
+      navigate(result.landing_path, { replace: true });
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Login failed");
+    } finally {
+      setFormBusy(false);
+    }
+  }
+
   return (
     <div className="login-page">
       <section className="login-intro">
@@ -58,15 +77,64 @@ export function Login() {
       <section className="login-panel">
         <div>
           <span className="eyebrow">DEMO ACCESS</span>
-          <h2>Choose a working view</h2>
-          <p>Each account is limited by backend-enforced permissions.</p>
+          <h2>Sign in</h2>
+          <p>Type credentials below, or click a role card for quick access.</p>
         </div>
+
+        {/* Manual login form */}
+        <form className="login-form" onSubmit={submitForm}>
+          <label className="login-field">
+            <span>Username</span>
+            <div className="input-wrap">
+              <User size={16} />
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="e.g. operations"
+                autoComplete="username"
+                required
+              />
+            </div>
+          </label>
+          <label className="login-field">
+            <span>Password</span>
+            <div className="input-wrap">
+              <KeyRound size={16} />
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="demo-pass"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+          </label>
+          <button
+            type="submit"
+            className="button primary"
+            disabled={formBusy || !username || !password}
+          >
+            {formBusy ? "Signing in…" : "Sign in"}
+          </button>
+          {error && (
+            <p className="error" role="alert">
+              {error}
+            </p>
+          )}
+        </form>
+
+        <div className="login-divider">
+          <span>or quick-pick a demo role</span>
+        </div>
+
         <div className="account-grid">
           {accounts.map((account) => (
             <button
               key={account.role}
               onClick={() => void enter(account.role)}
-              disabled={busy !== null}
+              disabled={busy !== null || formBusy}
               className="account-card"
             >
               <span className="account-role">{account.role}</span>
@@ -76,11 +144,11 @@ export function Login() {
             </button>
           ))}
         </div>
-        {error && (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        )}
+        <p className="login-hint">
+          All demo accounts use the password{" "}
+          <code>demo-pass</code>. See <strong>USAGE.md</strong> for the full
+          guide.
+        </p>
       </section>
     </div>
   );
