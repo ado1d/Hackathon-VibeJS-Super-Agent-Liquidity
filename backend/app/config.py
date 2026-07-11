@@ -1,8 +1,9 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Annotated
 
 from pydantic import SecretStr, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -14,7 +15,11 @@ class Settings(BaseSettings):
     jwt_secret: str = "local-demo-secret-change-before-deployment"
     jwt_algorithm: str = "HS256"
     access_token_minutes: int = 480
-    cors_origins: list[str] = ["http://localhost:5173", "http://localhost"]
+    # NoDecode tells pydantic-settings to skip JSON parsing and hand the raw
+    # env string to the field_validator below, which splits on commas.
+    # This lets users set CORS_ORIGINS="https://a.com,https://b.com" or "*"
+    # without wrapping it in a JSON array.
+    cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:5173", "http://localhost"]
     demo_seed: int = 20260711
     short_window_minutes: int = 15
     medium_window_minutes: int = 60
@@ -43,7 +48,18 @@ class Settings(BaseSettings):
     @field_validator("cors_origins", mode="before")
     @classmethod
     def split_origins(cls, value: object) -> object:
-        return value.split(",") if isinstance(value, str) else value
+        # Accept either a JSON array string ("[\"https://a.com\"]") or a
+        # plain comma-separated string ("https://a.com,https://b.com").
+        # Also accept a literal "*" to allow all origins.
+        if isinstance(value, str):
+            value = value.strip()
+            if value == "*":
+                return ["*"]
+            if value.startswith("["):
+                import json
+                return json.loads(value)
+            return [origin.strip() for origin in value.split(",") if origin.strip()]
+        return value
 
     @field_validator("jwt_secret")
     @classmethod

@@ -70,9 +70,11 @@ services:
     envVars:
       - key: VITE_API_BASE
         value: /api/v1
-      # This is read at container startup by nginx.conf.template.
+      # BACKEND_URL is read by nginx.conf.template at container startup.
+      # The template uses a resolver+variable pattern, so nginx won't crash
+      # even if this URL is wrong on first deploy — you'll just get 502s
+      # on /api/ calls until you set the correct value.
       # After first deploy, update this to your backend's public URL, e.g.:
       # https://super-agent-backend-xxxx.onrender.com
-      # then redeploy the frontend.
       - key: BACKEND_URL
-        value: http://backend:8000
+        value: https://placeholder.invalid
