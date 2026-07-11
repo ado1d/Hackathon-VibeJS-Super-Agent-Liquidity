@@ -9,14 +9,8 @@ server {
   location = /healthz { access_log off; return 200 "ok\n"; }
 
   # Proxy /api/ calls to the backend service.
-  #
   # CRITICAL: BACKEND_URL must be set to the backend's full URL WITHOUT a
   # trailing slash, e.g. https://super-agent-backend-xxxx.onrender.com
-  #
-  # If BACKEND_URL is empty or wrong, you'll get 502 (not a loop) because
-  # the default 127.0.0.1:1 is unreachable and won't match this server.
-  #
-  # DO NOT set BACKEND_URL to the frontend's own URL — that causes 508.
   location /api/ {
     resolver 1.1.1.1 8.8.8.8 valid=30s ipv6=off;
     proxy_ssl_server_name on;
