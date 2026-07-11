@@ -20,11 +20,17 @@ def verify_password(password: str, encoded: str) -> bool:
 def create_access_token(subject: str, role: str) -> tuple[str, int]:
     settings = get_settings()
     expires = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_minutes)
-    payload: dict[str, Any] = {"sub": subject, "role": role, "exp": expires, "iat": datetime.now(timezone.utc)}
-    return jwt.encode(payload, settings.jwt_secret, algorithm=settings.jwt_algorithm), settings.access_token_minutes * 60
+    payload: dict[str, Any] = {
+        "sub": subject,
+        "role": role,
+        "exp": expires,
+        "iat": datetime.now(timezone.utc),
+    }
+    return jwt.encode(
+        payload, settings.jwt_secret, algorithm=settings.jwt_algorithm
+    ), settings.access_token_minutes * 60
 
 
 def decode_access_token(token: str) -> dict[str, Any]:
     settings = get_settings()
     return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
-

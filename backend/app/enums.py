@@ -52,4 +52,3 @@ class ResolutionCode(StrEnum):
     REVIEWED_NO_ACTION = "reviewed_no_further_action"
     EXTERNAL_ESCALATION = "escalated_outside_prototype"
     DUPLICATE = "duplicate_alert"
-

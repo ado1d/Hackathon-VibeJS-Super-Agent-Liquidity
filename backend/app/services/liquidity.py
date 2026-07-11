@@ -42,34 +42,78 @@ def severity_for(shortage_minutes: Decimal | None, below_buffer: bool = False) -
     return Severity.WATCH
 
 
-def forecast_liquidity(balance: Decimal, buffer: Decimal, rates: RateInput,
-                       reliable: bool = True, suppress_precise_time: bool = False,
-                       demand_multiplier: Decimal = Decimal("1")) -> LiquidityResult:
+def forecast_liquidity(
+    balance: Decimal,
+    buffer: Decimal,
+    rates: RateInput,
+    reliable: bool = True,
+    suppress_precise_time: bool = False,
+    demand_multiplier: Decimal = Decimal("1"),
+) -> LiquidityResult:
     cash_in_rate = per_minute(rates.cash_in_amount, rates.window_minutes) * demand_multiplier
     cash_out_rate = per_minute(rates.cash_out_amount, rates.window_minutes) * demand_multiplier
     net = max(ZERO, cash_in_rate - cash_out_rate)
     available = balance - buffer
     if not reliable or suppress_precise_time:
-        return LiquidityResult(balance, buffer, cash_in_rate, cash_out_rate, net, None,
-                               Severity.DATA_ISSUE, False,
-                               "No reliable shortage estimate because data confidence is low.")
+        return LiquidityResult(
+            balance,
+            buffer,
+            cash_in_rate,
+            cash_out_rate,
+            net,
+            None,
+            Severity.DATA_ISSUE,
+            False,
+            "No reliable shortage estimate because data confidence is low.",
+        )
     if available <= ZERO:
-        return LiquidityResult(balance, buffer, cash_in_rate, cash_out_rate, net, ZERO,
-                               Severity.CRITICAL, True, "The resource is already at or below its safety buffer.")
+        return LiquidityResult(
+            balance,
+            buffer,
+            cash_in_rate,
+            cash_out_rate,
+            net,
+            ZERO,
+            Severity.CRITICAL,
+            True,
+            "The resource is already at or below its safety buffer.",
+        )
     if net <= ZERO:
-        return LiquidityResult(balance, buffer, cash_in_rate, cash_out_rate, net, None,
-                               Severity.WATCH, True,
-                               "No reliable shortage estimate because recent net consumption is zero or negative.")
+        return LiquidityResult(
+            balance,
+            buffer,
+            cash_in_rate,
+            cash_out_rate,
+            net,
+            None,
+            Severity.WATCH,
+            True,
+            "No reliable shortage estimate because recent net consumption is zero or negative.",
+        )
     minutes = (available / net).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-    return LiquidityResult(balance, buffer, cash_in_rate, cash_out_rate, net, minutes,
-                           severity_for(minutes), True,
-                           f"Projected safety-buffer pressure in approximately {minutes} minutes.")
+    return LiquidityResult(
+        balance,
+        buffer,
+        cash_in_rate,
+        cash_out_rate,
+        net,
+        minutes,
+        severity_for(minutes),
+        True,
+        f"Projected safety-buffer pressure in approximately {minutes} minutes.",
+    )
 
 
-def forecast_shared_cash(balance: Decimal, buffer: Decimal, rates: RateInput,
-                         reliable: bool = True, suppress_precise_time: bool = False,
-                         demand_multiplier: Decimal = Decimal("1")) -> LiquidityResult:
+def forecast_shared_cash(
+    balance: Decimal,
+    buffer: Decimal,
+    rates: RateInput,
+    reliable: bool = True,
+    suppress_precise_time: bool = False,
+    demand_multiplier: Decimal = Decimal("1"),
+) -> LiquidityResult:
     # Shared cash is consumed by cash-out, the inverse of provider e-money consumption.
     inverse = RateInput(rates.cash_out_amount, rates.cash_in_amount, rates.window_minutes)
-    return forecast_liquidity(balance, buffer, inverse, reliable, suppress_precise_time,
-                              demand_multiplier)
+    return forecast_liquidity(
+        balance, buffer, inverse, reliable, suppress_precise_time, demand_multiplier
+    )

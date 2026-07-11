@@ -52,4 +52,3 @@ def calculate_confidence(value: ConfidenceInput) -> ConfidenceResult:
         score -= 0.10
         reasons.append("A comparable baseline is unavailable (-0.10)")
     return ConfidenceResult(round(max(0.0, min(1.0, score)), 4), reasons, suppress)
-

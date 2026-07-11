@@ -15,4 +15,3 @@ def test_invalid_transition_has_standard_code() -> None:
     with pytest.raises(AppError) as caught:
         validate_transition(AlertStatus.RESOLVED, AlertStatus.ESCALATED)
     assert caught.value.code == "ALERT_INVALID_TRANSITION"
-
