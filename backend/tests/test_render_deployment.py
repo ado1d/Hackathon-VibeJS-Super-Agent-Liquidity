@@ -34,6 +34,8 @@ def test_render_containers_honor_dynamic_port_and_safe_nginx_substitution() -> N
     nginx_template = (ROOT / "frontend" / "nginx.conf.template").read_text(encoding="utf-8")
 
     assert "${PORT:-8000}" in backend_dockerfile
+    assert "COPY --chmod=755 docker-entrypoint.sh" in frontend_dockerfile
+    assert "RUN chmod" not in frontend_dockerfile
     assert 'ENTRYPOINT ["/usr/local/bin/super-agent-entrypoint"]' in frontend_dockerfile
     assert "envsubst '${BACKEND_URL} ${BACKEND_HOST} ${PORT}'" in entrypoint
     assert "proxy_set_header Host ${BACKEND_HOST};" in nginx_template
