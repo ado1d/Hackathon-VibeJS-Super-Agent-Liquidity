@@ -1,1 +1,0 @@
-{"code":"A","seed":101,"label":"Hidden provider shortage","expected":{"provider_shortage":true,"provider":"PROVIDER_A","confidence":"high","expected_anomaly_types":["velocity_spike"]}}

@@ -1,0 +1,170 @@
+// Super Agent Liquidity & Risk Intelligence Platform
+// Codex Community Hackathon — bKash presents SUST CSE Carnival 2026
+//
+// NOTE: All identifiers, balances, transactions and customer references in this
+// prototype are SYNTHETIC. No real customer, agent, or account data is used.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// --- Master data ----------------------------------------------------------
+
+model Provider {
+  id         String   @id @default(cuid())
+  code       String   @unique // bkash | nagad | rocket
+  name       String
+  brandColor String   // hex
+  softColor  String   // hex (low-saturation tint)
+  tagline    String?
+  createdAt  DateTime @default(now())
+
+  balances      AgentProviderBalance[]
+  transactions  Transaction[]
+  alerts        Alert[]
+  cases         Case[]
+}
+
+model Agent {
+  id        String   @id @default(cuid())
+  code      String   @unique // AG-KAR-001
+  name      String
+  ownerName String
+  area      String   // e.g. Karwan Bazar
+  thana     String
+  district  String
+  lat       Float
+  lng       Float
+  status    String   @default("active") // active | degraded | offline
+  createdAt DateTime @default(now())
+
+  cashBalance   Float                 @default(0)
+  cashCapacity  Float                 @default(800000)
+  providerBalances AgentProviderBalance[]
+  transactions  Transaction[]
+  alerts        Alert[]
+  cases         Case[]
+}
+
+// Current e-money balance per agent per provider (denormalised latest snapshot)
+model AgentProviderBalance {
+  id         String   @id @default(cuid())
+  agentId    String
+  providerId String
+  balance    Float
+  capacity   Float
+  // data-quality signals (Scenario C — delayed / conflicting feeds)
+  latencyMs  Int      @default(0)
+  isStale    Boolean  @default(false)
+  lastSyncAt DateTime @default(now())
+  confidence Float    @default(1.0) // 0..1
+
+  agent    Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, providerId])
+}
+
+// Time-series snapshots for liquidity forecast charts.
+// scope = 'cash' | provider code (bkash/nagad/rocket)
+model BalanceSnapshot {
+  id        String   @id @default(cuid())
+  agentId   String
+  scope     String   // 'cash' | 'bkash' | 'nagad' | 'rocket'
+  balance   Float
+  timestamp DateTime @default(now())
+
+  @@index([agentId, scope, timestamp])
+}
+
+model Transaction {
+  id           String   @id @default(cuid())
+  agentId      String
+  providerId   String
+  type         String   // cashin | cashout | transfer_in | transfer_out
+  amount       Float
+  customerId   String   // anonymised synthetic id (e.g. CUS-9F2A)
+  status       String   @default("success") // success | failed | pending
+  isAnomaly    Boolean  @default(false)
+  anomalyTags  String?  // comma-separated tags
+  timestamp    DateTime @default(now())
+
+  agent    Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, providerId, timestamp])
+  @@index([timestamp])
+}
+
+model Alert {
+  id             String   @id @default(cuid())
+  agentId        String
+  providerId     String?  // null => shared cash / cross-provider
+  type           String   // liquidity | anomaly | data_quality
+  category       String   // shortage | velocity | repeated_amount | data_conflict | cash_drain ...
+  severity       String   // critical | high | warning | info
+  title          String
+  message        String   // careful English message
+  messageBn      String?  // careful Bengali / Banglish message
+  evidence       String   // JSON string: facts, figures, sample tx refs
+  confidence     Float    @default(0.8) // 0..1
+  confidenceLabel String  @default("medium") // low | medium | high
+  status         String   @default("open") // open | acknowledged | owned | escalated | resolved
+  scenarioTag    String?  // A | B | C | D for demo scenarios
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  agent    Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id])
+  case     Case?
+
+  @@index([status, severity])
+  @@index([agentId, type])
+}
+
+model Case {
+  id            String   @id @default(cuid())
+  alertId       String   @unique
+  agentId       String
+  providerId    String?
+  priority      String   @default("p2") // p1 | p2 | p3
+  ownerRole     String   // agent | ops_field | ops_area | risk | management
+  ownerName     String?
+  status        String   @default("open") // open | acknowledged | assigned | escalated | resolved
+  escalationPath String? // JSON: ordered role chain
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  resolvedAt    DateTime?
+
+  alert    Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  agent    Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  provider Provider? @relation(fields: [providerId], references: [id])
+  events   CaseEvent[]
+}
+
+model CaseEvent {
+  id        String   @id @default(cuid())
+  caseId    String
+  type      String   // created | acknowledged | assigned | escalated | note | resolved | reopened
+  actor     String
+  role      String
+  note      String?
+  createdAt DateTime @default(now())
+
+  case Case @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, createdAt])
+}
+
+// Simulation run log — traceability for what scenarios were triggered.
+model SimulationLog {
+  id        String   @id @default(cuid())
+  scenario  String   // A | B | C | D | tick | reset
+  detail    String
+  createdAt DateTime @default(now())
+}

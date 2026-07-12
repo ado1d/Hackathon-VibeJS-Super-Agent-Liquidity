@@ -1,0 +1,285 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), "Hind Siliguri", "Noto Sans Bengali", system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* Professional fintech dark theme (default dark). */
+:root {
+  --radius: 0.75rem;
+  --background: oklch(0.16 0.012 250);
+  --foreground: oklch(0.96 0.005 250);
+  --card: oklch(0.205 0.014 255);
+  --card-foreground: oklch(0.96 0.005 250);
+  --popover: oklch(0.22 0.015 255);
+  --popover-foreground: oklch(0.96 0.005 250);
+  /* Emerald primary — healthy / go / safe */
+  --primary: oklch(0.72 0.17 160);
+  --primary-foreground: oklch(0.16 0.012 250);
+  --secondary: oklch(0.26 0.012 255);
+  --secondary-foreground: oklch(0.96 0.005 250);
+  --muted: oklch(0.25 0.012 255);
+  --muted-foreground: oklch(0.72 0.012 255);
+  --accent: oklch(0.3 0.02 160);
+  --accent-foreground: oklch(0.96 0.005 250);
+  --destructive: oklch(0.66 0.22 25);
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.72 0.17 160 / 60%);
+  --chart-1: oklch(0.72 0.17 160); /* emerald */
+  --chart-2: oklch(0.78 0.16 80);  /* amber */
+  --chart-3: oklch(0.66 0.22 25);  /* rose */
+  --chart-4: oklch(0.7 0.15 300);  /* violet */
+  --chart-5: oklch(0.72 0.18 350); /* pink */
+  --sidebar: oklch(0.185 0.013 255);
+  --sidebar-foreground: oklch(0.96 0.005 250);
+  --sidebar-primary: oklch(0.72 0.17 160);
+  --sidebar-primary-foreground: oklch(0.16 0.012 250);
+  --sidebar-accent: oklch(0.26 0.012 255);
+  --sidebar-accent-foreground: oklch(0.96 0.005 250);
+  --sidebar-border: oklch(1 0 0 / 8%);
+  --sidebar-ring: oklch(0.72 0.17 160 / 60%);
+}
+
+/* Light theme kept for completeness but the app is dark-first. */
+.light {
+  --background: oklch(0.985 0.003 250);
+  --foreground: oklch(0.18 0.012 255);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.012 255);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.012 255);
+  --primary: oklch(0.6 0.15 160);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.005 255);
+  --secondary-foreground: oklch(0.18 0.012 255);
+  --muted: oklch(0.96 0.005 255);
+  --muted-foreground: oklch(0.5 0.01 255);
+  --accent: oklch(0.94 0.02 160);
+  --accent-foreground: oklch(0.18 0.012 255);
+  --destructive: oklch(0.58 0.24 25);
+  --border: oklch(0.9 0.005 255);
+  --input: oklch(0.9 0.005 255);
+  --ring: oklch(0.6 0.15 160 / 50%);
+  --sidebar: oklch(0.97 0.004 255);
+  --sidebar-foreground: oklch(0.18 0.012 255);
+  --sidebar-primary: oklch(0.6 0.15 160);
+  --sidebar-primary-foreground: oklch(0.99 0 0);
+  --sidebar-accent: oklch(0.94 0.005 255);
+  --sidebar-accent-foreground: oklch(0.18 0.012 255);
+  --sidebar-border: oklch(0.9 0.005 255);
+  --sidebar-ring: oklch(0.6 0.15 160 / 50%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    color-scheme: dark;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "tnum" 1, "cv11" 1;
+  }
+}
+
+/* Provider brand utilities (boundaries must be visually obvious). */
+.provider-bkash {
+  --pv: #E2136E;
+  --pv-soft: #FCE7F0;
+}
+.provider-nagad {
+  --pv: #EC1C24;
+  --pv-soft: #FDE8E9;
+}
+.provider-rocket {
+  --pv: #8B5CF6;
+  --pv-soft: #EFE7FE;
+}
+
+/* Glassy panel surface. */
+.surface {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--card) 92%, transparent),
+    color-mix(in oklch, var(--card) 78%, transparent)
+  );
+  border: 1px solid var(--border);
+  backdrop-filter: blur(8px);
+  position: relative;
+}
+
+/* Subtle top-edge highlight on surfaces for depth. */
+.surface::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--foreground) 12%, transparent),
+    transparent
+  );
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.surface-hover {
+  transition: border-color 0.18s ease, transform 0.18s ease, background 0.18s ease;
+}
+.surface-hover:hover {
+  border-color: color-mix(in oklch, var(--primary) 45%, var(--border));
+}
+
+/* Custom scrollbars. */
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: color-mix(in oklch, var(--muted-foreground) 35%, transparent);
+  border-radius: 999px;
+}
+.scroll-thin::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in oklch, var(--muted-foreground) 55%, transparent);
+}
+
+/* Pulse dot for live status. */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.8); }
+}
+.live-dot {
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
+
+/* Subtle entrance. */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up {
+  animation: fade-up 0.32s ease-out both;
+}
+
+/* Number ticker monospace alignment. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bengali text rendering helper. */
+.bn {
+  font-family: "Hind Siliguri", "Noto Sans Bengali", var(--font-geist-sans), system-ui, sans-serif;
+  line-height: 1.65;
+}
+
+/* Shimmer skeleton loader. */
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklch, var(--muted) 60%, transparent) 0%,
+    color-mix(in oklch, var(--muted) 90%, transparent) 50%,
+    color-mix(in oklch, var(--muted) 60%, transparent) 100%
+  );
+  background-size: 1000px 100%;
+  animation: shimmer 2s linear infinite;
+}
+
+/* Slide-in for panels/cards. */
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.slide-in {
+  animation: slide-in 0.28s ease-out both;
+}
+
+/* Soft glow ring for active/focused elements. */
+.glow-ring {
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 30%, transparent),
+              0 0 20px -4px color-mix(in oklch, var(--primary) 25%, transparent);
+}
+
+/* Severity glow for critical alert cards. */
+.glow-critical {
+  box-shadow: 0 0 24px -8px color-mix(in oklch, #fb7185 40%, transparent);
+}
+.glow-high {
+  box-shadow: 0 0 20px -8px color-mix(in oklch, #fb923c 35%, transparent);
+}
+
+/* Gradient text for headings. */
+.gradient-text {
+  background: linear-gradient(135deg, var(--foreground), color-mix(in oklch, var(--primary) 70%, var(--foreground)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Sparkline path animation. */
+@keyframes draw-line {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+.draw-line {
+  stroke-dasharray: 1000;
+  animation: draw-line 1.2s ease-out forwards;
+}
+
+/* iOS safe-area padding for bottom tab bar. */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Table row hover highlight. */
+.row-hover:hover {
+  background: color-mix(in oklch, var(--muted) 30%, transparent);
+}
