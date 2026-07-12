@@ -151,6 +151,27 @@ const ROLE_COPY: Record<Role, string> = {
   admin: "Demo control",
 };
 
+const ROLE_VIEWS: Record<Role, ViewKey[]> = {
+  agent: ["command", "liquidity", "transactions", "anomalies", "coordination", "assistant"],
+  operations: [
+    "command",
+    "liquidity",
+    "transactions",
+    "anomalies",
+    "coordination",
+    "network",
+    "relationships",
+    "whatif",
+    "assistant",
+    "audit",
+    "metrics",
+    "simulation",
+  ],
+  risk: ["command", "transactions", "anomalies", "coordination", "relationships", "assistant", "audit"],
+  management: ["command", "network", "assistant", "audit", "metrics"],
+  admin: NAV.map((item) => item.key),
+};
+
 function money(value: string | number | null | undefined) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "Unavailable";
   return new Intl.NumberFormat("en-US", {
@@ -183,6 +204,11 @@ export function SaliWorkspace() {
   const [selectedAgentId, setSelectedAgentId] = useState<string>("");
   const [commandOpen, setCommandOpen] = useState(false);
   const [tour, setTour] = useState(false);
+  const allowedViews = useMemo(() => ROLE_VIEWS[user?.role ?? "operations"], [user?.role]);
+  const allowedNav = useMemo(
+    () => NAV.filter((item) => allowedViews.includes(item.key)),
+    [allowedViews],
+  );
 
   const agents = useQuery({
     queryKey: ["sali-agents"],
@@ -254,6 +280,10 @@ export function SaliWorkspace() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (!allowedViews.includes(view)) setView("command");
+  }, [allowedViews, view]);
+
   const refreshAll = () => {
     queryClient.invalidateQueries({ queryKey: ["sali-agents"] });
     queryClient.invalidateQueries({ queryKey: ["sali-alerts"] });
@@ -278,7 +308,7 @@ export function SaliWorkspace() {
           </div>
         </div>
         <nav className="sali-nav" aria-label="SALI workspace navigation">
-          {NAV.map((item) => {
+          {allowedNav.map((item) => {
             const Icon = item.icon;
             return (
               <button
@@ -330,7 +360,7 @@ export function SaliWorkspace() {
           </div>
         </header>
 
-        {tour && <GuidedTourBanner view={view} setView={setView} />}
+        {tour && <GuidedTourBanner view={view} setView={setView} allowedNav={allowedNav} />}
 
         <section className="sali-kpi-strip">
           <Kpi label="Active agents" value={agentList.length} detail="Synthetic outlets" />
@@ -385,6 +415,7 @@ export function SaliWorkspace() {
 
       {commandOpen && (
         <CommandPalette
+          allowedNav={allowedNav}
           close={() => setCommandOpen(false)}
           setView={(next) => {
             setView(next);
@@ -480,6 +511,14 @@ function CommandView({
             </article>
           ))}
         </div>
+      </section>
+      <section className="sali-panel wide role-suggestion">
+        <PanelTitle icon={ShieldAlert} title="Role-specific next step" sub="The reference demo changes guidance by role" />
+        <p>
+          Use your allowed views from the sidebar. Agents see their outlet context, operations coordinate
+          the response, risk reviews evidence without declaring wrongdoing, management sees aggregate
+          readiness, and admin controls scenarios.
+        </p>
       </section>
     </div>
   );
@@ -937,21 +976,37 @@ function PanelTitle({ icon: Icon, title, sub }: { icon: typeof Activity; title: 
   );
 }
 
-function GuidedTourBanner({ view, setView }: { view: ViewKey; setView: (view: ViewKey) => void }) {
-  const index = NAV.findIndex((item) => item.key === view);
-  const next = NAV[(index + 1) % NAV.length];
+function GuidedTourBanner({
+  view,
+  setView,
+  allowedNav,
+}: {
+  view: ViewKey;
+  setView: (view: ViewKey) => void;
+  allowedNav: typeof NAV;
+}) {
+  const index = Math.max(0, allowedNav.findIndex((item) => item.key === view));
+  const next = allowedNav[(index + 1) % allowedNav.length];
   return (
     <div className="tour-banner">
       <Sparkles size={18} />
-      <span>Demo mode is on. Current stop: {NAV[index]?.label}. Next: {next.label}.</span>
+      <span>Demo mode is on. Current stop: {allowedNav[index]?.label}. Next: {next.label}.</span>
       <button onClick={() => setView(next.key)}>Next stop</button>
     </div>
   );
 }
 
-function CommandPalette({ close, setView }: { close: () => void; setView: (view: ViewKey) => void }) {
+function CommandPalette({
+  close,
+  setView,
+  allowedNav,
+}: {
+  close: () => void;
+  setView: (view: ViewKey) => void;
+  allowedNav: typeof NAV;
+}) {
   const [query, setQuery] = useState("");
-  const items = NAV.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
+  const items = allowedNav.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()));
   return (
     <div className="command-backdrop" onClick={close}>
       <div className="command-modal" onClick={(event) => event.stopPropagation()}>
