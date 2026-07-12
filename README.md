@@ -1,271 +1,436 @@
 # SALI — Super Agent Liquidity & Risk Intelligence Platform
 
-> **Codex Community Hackathon · bKash presents SUST CSE Carnival 2026**
+**Codex Community Hackathon · bKash presents SUST CSE Carnival 2026**
 
-A simple decision-support tool for MFS "super agents" who serve **bKash, Nagad, and Rocket** customers from one shared cash drawer but three separate e-money balances.
+SALI is a safe, explainable decision-support platform for multi-provider mobile financial service super agents. It helps agents and provider operations teams understand **shared cash pressure**, **provider-wise e-money pressure**, **unusual transaction patterns**, and **who should coordinate the response** — without executing real financial transactions, merging provider balances, or declaring fraud.
 
-SALI helps agents answer one question:
-> *"Will I have enough cash and provider balance to keep serving customers for the next few hours?"*
-
-It does this by:
-- showing cash + all 3 provider balances in one view (never merged)
-- forecasting shortages before they happen
-- flagging unusual activity with plain-language evidence (never declared as fraud)
-- routing alerts to the right human owner with a traceable coordination trail
-
-> ⚠️ **All data is synthetic.** No real customer, agent, or account is referenced. The prototype never executes real financial transactions.
+- **Live demo:** https://sali-project-1.vercel.app/
+- **Source repository:** https://github.com/ado1d/sali
+- **Prototype mode:** Synthetic/demo data only
+- **Core principle:** Detect, explain, coordinate — never accuse, transfer, or control money.
 
 ---
 
-## Table of Contents
-1. [What Judges Should See](#-what-judges-should-see)
-2. [Source Repository & Setup](#-source-repository--setup)
-3. [Architecture Diagram](#-architecture-diagram)
-4. [Data & Simulation Note](#-data--simulation-note)
-5. [Validation Evidence (Measured Metrics)](#-validation-evidence-measured-metrics)
-6. [Responsible-Design Note](#-responsible-design-note)
-7. [Sample Data & Environment](#-sample-data--environment)
-8. [Demo Scenarios](#-demo-scenarios)
-9. [Tech Stack](#-tech-stack)
+## 1. Executive Summary
+
+A mobile financial service super agent may serve customers from multiple providers such as **bKash, Nagad, and Rocket**. The agent usually has:
+
+1. **One shared physical cash drawer** used for customer cash-in/cash-out service.
+2. **Separate e-money balances** for each provider.
+
+This creates an operational problem: the agent may appear healthy if all values are viewed together, but service can still fail if either the **shared cash reserve** or a **specific provider balance** becomes low.
+
+SALI solves this by providing a unified but provider-safe operational view, forecasting upcoming pressure, surfacing unusual activity with evidence, and routing important alerts through a human-owned coordination workflow.
 
 ---
 
-## 🎯 What Judges Should See
+## 2. What Makes SALI Different
 
-This is a **working prototype**. When the app loads, you see a live flow of:
+SALI is **not only a dashboard**. A dashboard shows data; SALI creates a safe decision path.
 
-1. **Multi-provider liquidity** — physical cash + 3 separate e-money balances (bKash · Nagad · Rocket) for 6 Dhaka-area outlets.
-2. **Forecasted shortage** — a 60-minute projection chart showing when a balance is expected to cross the 20% "running low" threshold (with confidence level).
-3. **Anomaly alert** — an explainable alert (e.g. "repeated near-identical amounts from a small customer group") with evidence: facts, sample transactions, and a safe next step.
-4. **One coordinated case** — an alert routed → acknowledged → escalated → resolved, with a complete audit trail.
+It connects four layers into one workflow:
 
-Open the **Coordination** view to see the case board. Open the **Audit Trail** view to see every event in time order.
+```text
+Liquidity pressure
+      +
+Unusual activity evidence
+      +
+Confidence and uncertainty
+      +
+Human case workflow
+      ↓
+Safe operational decision support
+```
 
-### How to demo in 90 seconds
-1. Open the app at `http://localhost:81`.
-2. Click **Simulation** → **Scenario B** (liquidity draining + unusual activity).
-3. Watch the **Command Center** update with new KPIs and a red alert.
-4. Click the alert → it opens in **Anomaly Review** with evidence + AI advisory.
-5. Click **Acknowledge** → **Escalate** → **Resolve** to complete the coordination flow.
-6. Open **Audit Trail** to confirm every action is logged.
+For every important alert, the system explains:
+
+- What is under pressure.
+- Why the issue matters.
+- Which evidence supports the alert.
+- How reliable the data is.
+- Who owns the case.
+- What the safe next step is.
+- Whether the issue is open, acknowledged, escalated, or resolved.
 
 ---
 
-## 📦 Source Repository & Setup
+## 3. Required Deliverables Coverage
+
+| Required deliverable | What judges should see in SALI |
+|---|---|
+| **Working prototype** | Live demo showing multi-provider balances, shared cash pressure, unusual activity evidence, and a case workflow from alert to coordination/resolution. |
+| **Source repository** | Source code, setup instructions, environment examples, sample synthetic data generation, API routes, and UI modules. |
+| **Architecture diagram** | README architecture section plus Metrics & Validation view describing frontend, API routes, Prisma/SQLite, analytics, AI assistance, provider boundaries, and alert flow. |
+| **Data and simulation note** | Synthetic data explanation, provider assumptions, scenario A/B/C/D descriptions, anomaly assumptions, and limitations. |
+| **Validation evidence** | Metrics route and Metrics & Validation page showing shortage lead time, anomaly scenario coverage, explanation coverage, query latency, feed health, and case traceability. |
+| **Responsible-design note** | Safety section explaining privacy, human review, false positives, advisory boundaries, provider separation, and actions the system intentionally does not perform. |
+| **Final presentation support** | Demo script, role workflow, limitations, and story-driven explanation included in this README for live presentation. |
+
+---
+
+## 4. Key Product Modules
+
+| Module | Purpose |
+|---|---|
+| **Command Center** | Network overview, operational KPIs, critical alerts, and overall readiness. |
+| **Unified Liquidity** | Shared cash and provider-wise balances shown separately with forecasted pressure. |
+| **Transactions** | Raw synthetic transaction explorer with provider, type, amount, status, and anomaly tags. |
+| **Anomaly Review** | Evidence-led review of unusual patterns such as repeated amounts, velocity spikes, concentration, and data conflicts. |
+| **Coordination** | Human case workflow with ownership, acknowledgement, escalation, notes, and resolution. |
+| **Network Hotspots** | Area-wise pressure view and support prioritization. |
+| **Relationship Graph** | Simulated cross-provider relationship insight using synthetic identifiers only. |
+| **What-If Simulator** | Demand shock simulation for Eid, salary day, local events, or sudden cash-out pressure. |
+| **AI Assistant** | Optional explanation, summarization, and advisory support; never a decision maker. |
+| **Audit Trail** | Traceable history of alert creation, ownership changes, notes, escalation, and resolution. |
+| **Metrics & Validation** | Analytical, performance, reliability, and responsible-design evidence. |
+| **Simulation** | Deterministic demo scenarios A/B/C/D and controlled data reset/seed flow. |
+
+---
+
+## 5. User Roles and Workflow
+
+SALI is designed around the actual people involved in a super-agent operation.
+
+| Role | Main responsibility | What the role sees/does |
+|---|---|---|
+| **Agent / Outlet** | Confirms ground reality | Views own cash, provider balances, pressure, and support need. Confirms whether demand is normal or support is required. |
+| **Operations / Field Officer** | Coordinates service continuity | Monitors assigned agents, claims alerts, acknowledges, contacts agent, adds notes, arranges approved support, escalates if needed. |
+| **Risk Reviewer** | Reviews unusual evidence | Reviews escalated unusual patterns, evidence, confidence, uncertainty, and operations notes. Does not declare fraud. |
+| **Management** | Monitors readiness | Views aggregate area-level risk, hotspots, open/resolved alerts, and validation metrics. Does not inspect sensitive individual evidence. |
+| **Admin / Demo Controller** | Controls simulation | Seeds synthetic data, loads scenarios, resets demo state, and demonstrates the end-to-end flow. |
+
+### Human Coordination Flow
+
+```text
+System detects liquidity/anomaly/data-quality issue
+        ↓
+Alert is created with reason, evidence, confidence, uncertainty
+        ↓
+Operations receives and claims the alert
+        ↓
+Operations acknowledges and verifies with the agent
+        ↓
+Case note is added
+        ↓
+If unusual evidence remains unexplained, case is escalated to Risk
+        ↓
+Risk reviewer performs evidence-led review
+        ↓
+Case is resolved with note and audit trail
+```
+
+---
+
+## 6. Architecture Overview
+
+```text
+Browser / User Interface
+  ├─ Command Center
+  ├─ Unified Liquidity
+  ├─ Transactions
+  ├─ Anomaly Review
+  ├─ Coordination
+  ├─ Audit Trail
+  └─ Metrics & Validation
+        ↓
+Next.js App Router + API Routes
+  ├─ /api/dashboard
+  ├─ /api/transactions
+  ├─ /api/alerts
+  ├─ /api/cases
+  ├─ /api/anomaly/scan
+  ├─ /api/simulate
+  ├─ /api/metrics
+  ├─ /api/assistant
+  └─ /api/seed
+        ↓
+Service Logic
+  ├─ Liquidity forecasting
+  ├─ Anomaly detection
+  ├─ Confidence and safe fallback
+  ├─ Case workflow
+  ├─ Audit logging
+  └─ Optional AI assistance
+        ↓
+Prisma ORM + SQLite Demo Database
+  ├─ Providers
+  ├─ Agents
+  ├─ Provider balances
+  ├─ Shared cash snapshots
+  ├─ Transactions
+  ├─ Alerts
+  ├─ Cases
+  ├─ Case events
+  └─ Simulation logs
+```
+
+### Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js App Router + TypeScript |
+| UI | React, Tailwind CSS, shadcn/ui style components, Lucide icons |
+| Charts | Recharts |
+| Data layer | Prisma ORM |
+| Demo database | SQLite |
+| AI assistance | OpenAI server-side API / safe fallback |
+| Deployment | Vercel demo deployment |
+
+---
+
+## 7. Data and Simulation Note
+
+SALI uses **synthetic data only**. No real customer, wallet, provider account, PIN, OTP, password, or production financial data is used.
+
+### Synthetic Data Fields
+
+The demo data includes:
+
+- Agent code, outlet name, area, thana, district, latitude, longitude.
+- Provider code and provider-specific e-money balance.
+- Shared physical cash balance.
+- Transaction type: cash-in, cash-out, transfer-in, transfer-out.
+- Amount, timestamp, status, synthetic customer ID.
+- Feed quality indicators such as latency, stale status, and confidence.
+- Alert type, severity, evidence, confidence, status, case owner, and case timeline.
+
+### Demo Scenarios
+
+| Scenario | Purpose | What it demonstrates |
+|---|---|---|
+| **Scenario A — Hidden Provider Shortage** | Aggregate looks healthy but one provider balance is under pressure. | Provider-specific liquidity visibility and forward-looking shortage insight. |
+| **Scenario B — Liquidity Pressure + Unusual Activity** | Shared cash is falling and repeated near-identical cash-outs appear. | Combined liquidity risk, unusual activity evidence, false-positive awareness, and human review. |
+| **Scenario C — Data Inconsistency** | Provider feed is delayed/stale/conflicting. | Confidence reduction, safe fallback, and no misleading recommendation. |
+| **Scenario D — Coordinated Response** | A high-priority case is already handled through escalation and resolution. | Ownership, acknowledgement, case notes, escalation, resolution, and audit trail. |
+
+---
+
+## 8. Analytical Approach
+
+### 8.1 Liquidity Forecasting
+
+SALI forecasts whether shared cash or a provider-specific balance may reach a safety threshold.
+
+```text
+Available balance = current balance - safety buffer
+Net outflow rate  = recent outgoing demand - recent incoming demand
+Time to pressure  = available balance / net outflow rate
+```
+
+Example:
+
+```text
+Shared cash: 14,450 BDT
+Safety buffer: 10,000 BDT
+Available cash: 4,450 BDT
+Recent cash consumption: 559 BDT/min
+Estimated time to pressure: about 8 minutes
+```
+
+This allows operations teams to intervene before customer service is disrupted.
+
+### 8.2 Anomaly Evidence
+
+SALI does not use anomaly scores as proof of wrongdoing. It surfaces review-worthy evidence such as:
+
+- Repeated near-identical cash-out amounts.
+- Sudden transaction velocity spike.
+- Concentration among a small group of synthetic identifiers.
+- Abnormal failure patterns.
+- Provider feed delay or balance inconsistency.
+- Cross-provider relationship patterns using synthetic identifiers.
+
+Every anomaly is framed as **unusual activity requiring human review**, not as a final fraud decision.
+
+### 8.3 Confidence and Uncertainty
+
+SALI reduces confidence when data quality is weak:
+
+- Provider feed is delayed.
+- Feed is stale or missing.
+- Balance appears conflicting.
+- Transaction sample is limited.
+- Activity is volatile or lacks a reliable baseline.
+
+When confidence is low, the system avoids overconfident recommendations and asks for human verification.
+
+---
+
+## 9. Validation Evidence
+
+SALI includes measurable validation evidence through the Metrics & Validation view and `/api/metrics` endpoint.
+
+| Metric category | Example evidence shown by the system |
+|---|---|
+| **Shortage lead time** | Forecasted time before provider/shared-cash pressure reaches safety buffer. |
+| **Injected scenario coverage** | Demo scenarios A/B/C/D are seeded and surfaced in the interface. |
+| **Anomaly evidence coverage** | Alerts include evidence, reason, uncertainty, and a safe next step. |
+| **Explanation coverage** | Percentage of alerts with facts, uncertainty, and recommended action. |
+| **Performance** | API query timing at demo data volume. |
+| **Reliability** | Feed health, stale feed count, average confidence, case traceability. |
+| **Auditability** | Percentage of cases with timeline/case events. |
+
+The goal is not to claim production fraud-detection readiness. The goal is to demonstrate measurable analytical quality, reliable fallback behavior, and end-to-end engineering evidence for a safe prototype.
+
+---
+
+## 10. Responsible Design and Safety Boundaries
+
+SALI is designed as a **decision-support prototype**, not as a financial execution system.
+
+### What SALI Does
+
+- Shows provider-wise balances and shared cash separately.
+- Forecasts possible liquidity pressure.
+- Surfaces unusual activity with evidence and uncertainty.
+- Assigns and tracks human-owned cases.
+- Supports acknowledgement, escalation, notes, resolution, and audit history.
+- Provides advisory explanations and optional AI-assisted summaries.
+
+### What SALI Intentionally Does Not Do
+
+- Does not merge provider balances.
+- Does not convert, settle, or transfer balances between providers.
+- Does not connect to real wallets or production provider APIs.
+- Does not request PINs, OTPs, passwords, private keys, or credentials.
+- Does not block users, freeze funds, accuse agents, or initiate financial actions.
+- Does not declare fraud or make final risk decisions.
+- Does not expose real customer identity.
+
+### Careful Risk Language
+
+SALI uses:
+
+```text
+Unusual activity
+Requires review
+Evidence-led review
+Human review required
+Approved support coordination
+```
+
+SALI avoids:
+
+```text
+Fraud confirmed
+Block user
+Freeze account
+Transfer balance
+Merge provider balance
+Automatic disciplinary action
+```
+
+---
+
+## 11. Local Setup
 
 ### Prerequisites
-- **Bun** ≥ 1.3 (or Node.js ≥ 20 as fallback)
-- **Caddy** (for the port-81 gateway on Windows)
-- ~500 MB free disk space
 
-### One-time setup
+- Node.js or Bun
+- Git
+- Prisma-compatible environment
+
+### Install and Run
+
 ```bash
-# 1. Install dependencies
-bun install
+# Install dependencies
+npm install
 
-# 2. Push the Prisma schema to SQLite
-bun run db:push
+# Generate Prisma client
+npx prisma generate
 
-# 3. Start the dev server (Next.js on :3000)
-bun run dev
+# Push database schema
+npx prisma db push
 
-# 4. In a second terminal — start the realtime mini-service (Socket.io on :3001)
-cd mini-services/realtime
-bun install
-bun run dev
+# Run development server
+npm run dev
 ```
 
-### Optional: Caddy gateway (port 81)
-The repo includes a `Caddyfile` that proxies port 81 → Next.js + Socket.io for production:
-```bash
-caddy run --config Caddyfile
+Open:
+
+```text
+http://localhost:3000
 ```
 
-The app will then be available at **`http://localhost:81`**.
+### Seed Demo Data
 
-### Seed sample data
-On first run, the seed script automatically inserts:
-- 6 super-agent outlets (Karwan Bazar, Gulshan, Dhanmondi, Mirpur, Mohammadpur, Uttara)
-- 60 minutes of balance history per outlet per provider
-- ~500 synthetic transactions
-- 4 demo scenarios (A · B · C · D)
+The app includes a seed API route. After running locally, open or call:
 
-To re-seed manually:
-```bash
-curl -X POST http://localhost:3000/api/seed
+```text
+/api/seed
+```
+
+This initializes the synthetic super-agent network and demo scenarios.
+
+---
+
+## 12. Deployment Notes
+
+The live demo is deployed on Vercel:
+
+```text
+https://sali-project-1.vercel.app/
+```
+
+Recommended environment variables:
+
+```text
+DATABASE_URL="file:./db/custom.db"
+OPENAI_API_KEY="server-side-only-key"
+NEXT_PUBLIC_APP_NAME="SALI"
+NEXT_PUBLIC_DEMO_MODE="true"
+```
+
+Important notes:
+
+- `OPENAI_API_KEY` must stay server-side only.
+- SQLite on Vercel is suitable for a hackathon demo, but may reset because serverless filesystem persistence is limited.
+- For production, replace SQLite with a persistent database such as Postgres.
+- The prototype must remain synthetic-data-only unless proper provider authorization, compliance, monitoring, and security review are completed.
+
+---
+
+## 13. Recommended Judge Demo Script
+
+Use this flow during the live presentation:
+
+```text
+1. Open SALI live demo.
+2. Show Command Center and explain the super-agent problem.
+3. Open Unified Liquidity.
+4. Show shared cash and provider balances separately.
+5. Open Scenario B / liquidity pressure view.
+6. Explain shortage forecast and unusual transaction evidence.
+7. Open an alert detail or coordination case.
+8. Show reason, evidence, confidence, uncertainty, owner, next step, and status.
+9. Demonstrate claim / acknowledge / note / escalate / resolve workflow.
+10. Show Risk Review for evidence-led review.
+11. Show Audit Trail to prove traceability.
+12. Show Metrics & Validation for measured evidence.
+13. Mention Scenario C safe fallback for missing/conflicting data.
+14. End with safety boundaries and limitations.
+```
+
+
+
+
+
+## 14. Repository Structure
+
+```text
+src/app/                 Next.js app pages and API routes
+src/app/api/             Dashboard, alerts, cases, simulation, metrics, AI routes
+src/lib/                 Forecasting, anomaly detection, simulation, config, DB client
+src/components/          UI components and dashboard sections
+src/hooks/               Client hooks and interaction helpers
+prisma/schema.prisma     Data model for synthetic providers, agents, transactions, alerts, cases
+public/                  Static assets
+mini-services/realtime/  Optional realtime service for non-Vercel environments
+download/                Supporting README and deployment notes
 ```
 
 ---
 
-## 🏗️ Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│ Users & Roles (role-gated actions)                                  │
-│  • Super Agent   • Field Officer   • Area Manager                  │
-│  • Risk Analyst  • Management                                        │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ role-gated actions
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Frontend — Next.js 16 (single route, 12 views)                      │
-│  Command Center · Unified Liquidity · Anomaly Review · Coordination │
-│  What-If · AI Assistant · Audit Trail · Metrics · Simulation ...   │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ REST API (no server actions)
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Backend — Next.js API Routes                                        │
-│  • Liquidity Forecast (burn-rate → ETA)                            │
-│  • Anomaly Detectors (repeated · velocity · data conflict)          │
-│  • Case Workflow (route · ack · escalate · resolve)                │
-│  • AI Explain (Bengali + English, safe fallback)                   │
-│  • AI Assistant (conversational, live context)                     │
-│  • TTS (voice output)                                               │
-└──────────────────────────────┬──────────────────────────────────────┘
-                               │ reads / writes (synthetic data)
-                               ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│ Data & Realtime                                                     │
-│  • Prisma + SQLite (agents · balances · txns · alerts · cases)      │
-│  • Socket.io on :3001 (auto-tick every 9s, auto-scan every 35s)    │
-│  • 3 logical providers — bKash · Nagad · Rocket (separate boundaries)│
-└─────────────────────────────────────────────────────────────────────┘
-```
-
-### Key interfaces
-| Layer | Path | Purpose |
-|-------|------|---------|
-| Web app | `/` | Single-route Next.js app with 12 views |
-| API | `POST /api/simulate` | Manual tick or trigger scenario |
-| API | `GET /api/dashboard` | Network-wide KPIs |
-| API | `GET /api/balances` | Unified cash + provider balances |
-| API | `GET /api/anomaly` | Latest anomaly alerts with evidence |
-| API | `POST /api/cases` | Create / ack / escalate / resolve a case |
-| API | `GET /api/audit` | Global event timeline |
-| Realtime | `ws://localhost:3001` | Socket.io tick + scan events |
-
-### Alert coordination flow
-```
-Alert created (auto-detector OR manual)
-        │
-        ▼
-Route to owner (based on role + outlet)
-        │
-        ▼
-Acknowledge (human required)
-        │
-        ▼
-Escalate (if severity = high/critical OR stale > X min)
-        │
-        ▼
-Resolve (human closes the loop with a note)
-        │
-        ▼
-Audit Trail (every event timestamped + role + actor)
-```
-
----
-
-## 🧪 Data & Simulation Note
-
-### What is synthetic
-- All 6 outlets are **real Dhaka area names** but contain **fictional agent IDs, phone numbers, and transaction records**.
-- All phone numbers, customer IDs, and amounts are randomly generated.
-- No real PII, credentials, PINs, or OTPs are present in any database row.
-
-### How the data was created
-- **Balances**: seeded with realistic per-provider capacity (bKash 500K, Nagad 300K, Rocket 200K BDT) plus 60 minutes of 5-minute snapshots generated by a stochastic burn-rate model.
-- **Transactions**: ~500 synthetic cash-in / cash-out / transfer events distributed across the 6 outlets and 3 providers, with realistic time-of-day peaks (lunch hours, end-of-day).
-- **Anomalies**: 4 scenarios are injected on seed (see below).
-
-### The 4 demo scenarios
-| Scenario | What it demonstrates | How it's triggered |
-|----------|---------------------|-------------------|
-| **A — Hidden Provider Shortage** | Aggregate looks healthy, but one provider's e-money is about to run out | `POST /api/simulate {"scenario":"A"}` |
-| **B — Liquidity + Unusual Activity** | Cash draining fast + repeated near-identical amounts from a small customer group | `POST /api/simulate {"scenario":"B"}` |
-| **C — Data Inconsistency** | Provider feed delayed/conflicting → confidence reduced, no confident recommendation | `POST /api/simulate {"scenario":"C"}` |
-| **D — Coordinated Response** | Alert routed, acknowledged, escalated, resolved with full audit trail | `POST /api/simulate {"scenario":"D"}` |
-
-### Drift over time
-The realtime engine auto-ticks every **~9 seconds** (advances simulation time) and auto-scans every **~35 seconds** (runs all detectors). So the dashboard reflects live drifting state without any manual intervention.
-
-### Assumptions & limitations
-- This is a **prototype**, not production. SQLite + single-process Next.js is intentional for portability.
-- The forecast uses a simple linear burn rate; in reality, MFS demand is seasonal (Eid, salary days, weekends) — see "False positives" below.
-- The "providers" are **logical labels only**. SALI does NOT connect to real bKash / Nagad / Rocket infrastructure.
-- AI explanations are advisory and may be wrong; they are always paired with a confidence badge.
-
----
-
-## 📊 Validation Evidence (Measured Metrics)
-
-At least three measured metrics, run live in-app on the **Metrics & Validation** view.
-
-| # | Category | Metric | Measured Value | How it's measured |
-|---|----------|--------|---------------|-------------------|
-| 1 | **Analytics** | Anomaly recall | **4 / 4 (100%)** | All 4 injected scenarios (A·B·C·D) are surfaced by detectors |
-| 2 | **Analytics** | Shortage lead-time | **~1.5 h avg** | Avg hours before projected balance crosses 20% threshold |
-| 3 | **Analytics** | Explanation coverage | **100%** | % of alerts with facts + uncertainty + safe next step |
-| 4 | **Performance** | p50 query latency | **~9 ms** | Median across agent lookup, alerts query, txn count |
-| 5 | **Reliability** | Feed health | **~94%** | % of provider feeds fresh (not stale) |
-| 6 | **Reliability** | Case traceability | **100%** | % of cases with a complete audit-trail row |
-
-### How judges can reproduce
-```bash
-# Trigger the load test endpoint
-curl -X POST http://localhost:3000/api/loadtest \
-  -H "Content-Type: application/json" \
-  -d '{"requests":100,"concurrency":5}'
-
-# Returns JSON with p50 / p95 / p99 + per-query-type breakdown
-```
-
-The **Metrics & Validation** view also includes a built-in load-test panel with sliders for total requests and concurrency — no command line needed.
-
----
-
-## 🛡️ Responsible-Design Note
-
-### What SALI does (carefully)
-- ✅ **Careful language.** Uses "unusual" and "requires review" — never declares fraud.
-- ✅ **Human review required.** Every high-impact alert routes to a human owner before any action.
-- ✅ **Provider boundaries preserved.** One provider cannot control another's balance, data, or decisions.
-- ✅ **Synthetic data only.** No real identities, credentials, PINs, OTPs, or account numbers.
-- ✅ **False-positive awareness.** Each detector documents expected FP risk (e.g. Eid bonuses, salary-day spikes).
-- ✅ **Low-confidence fallback.** When data is stale or conflicting, confidence drops and no confident recommendation is made.
-
-### What SALI intentionally does NOT do
-- ❌ **No real interoperability, settlement, or wallet conversion.** This is a prototype, not a payment rail.
-- ❌ **No connection to real wallets or financial infrastructure.**
-- ❌ **No automatic blocking, freezing, or disciplinary action.** A human must always decide.
-- ❌ **No collection of credentials, PINs, OTPs, or passwords.**
-- ❌ **No final fraud determination.** All risk signals are advisory, not conclusive.
-- ❌ **No cross-provider data merging.** Each provider stays in its own logical boundary.
-
-### Privacy summary
-- All data is generated locally by the seed script.
-- No third-party telemetry, analytics, or tracking scripts are loaded.
-- The AI assistant sends only anonymized aggregate KPIs to the LLM (never customer IDs or amounts).
-
----
-
-## 🌱 Sample Data & Environment
-
-### `.env.example`
-```bash
-# Database
-DATABASE_URL="file:./dev.db"
-
-# Realtime service
-NEXT_PUBLIC_REALTIME_URL="http://localhost:3001"
-
-# AI provider (optional — fallback is deterministic text)
-ZAI_API_KEY="your-key-here"
-
-# App port
-PORT=3000
-```
 
 ### Sample data shape
 ```jsonc
@@ -284,6 +449,153 @@ PORT=3000
 
 ---
 
+## 🔬 Analytical Approach (deep dive)
+
+SALI's analytics are intentionally **small, rule-based, and explainable** — every output is auditable by a human. There are no black-box ML models in the alert path. Four modules work together.
+
+### A. Liquidity forecast — *"When will I run out?"*
+
+**Module:** `src/lib/forecast.ts`
+**Goal:** project when an outlet's shared cash or a provider-specific e-money balance will fall below the **20% shortage threshold**.
+
+**Inputs per (agent, scope):**
+- 60-minute history of balance snapshots (5-minute resolution)
+- Current balance + capacity
+- Feed confidence + staleness flag
+
+**How it works (plain English):**
+1. Read the snapshots for the last hour from Prisma.
+2. Compute **burn rate** = `(first balance − last balance) / hours`. Positive = draining.
+3. If draining, project the time when `balance = capacity × 0.20`.
+4. **Dampen confidence** if the signal is weak:
+   - Feed marked stale → cap at 0.45 (low)
+   - < 3 snapshots → cap at 0.55 (medium)
+5. Return: current, capacity, burn rate, **hours-to-shortage**, projected timestamp, confidence (0–1), series points for the chart.
+
+**Output shape:**
+```jsonc
+{
+  "scope": "rocket",
+  "label": "Rocket e-Money",
+  "current": 95000,
+  "capacity": 200000,
+  "burnRatePerHour": 38000,
+  "hoursToShortage": 1.6,
+  "projectedShortageAt": "2026-07-12T10:24:00Z",
+  "confidence": 0.78,
+  "confidenceLabel": "medium"
+}
+```
+
+**Why it matters:** providers are forecast **independently** — the aggregate KPI can be green while one provider is about to run dry (Scenario A). The forecast surfaces hidden per-provider pressure without ever merging provider boundaries.
+
+---
+
+### B. Anomaly detectors — *"Is anything unusual?"*
+
+**Module:** `src/lib/anomaly.ts`
+**Goal:** flag unusual activity with **evidence, uncertainty, and a safe next step** — never with a fraud declaration.
+
+All three detectors return the same `DetectedAnomaly` shape:
+```ts
+{
+  agentId, providerId, category, severity,
+  title, message,
+  evidence: { summary, facts, sampleTx, possibleNormalReasons, uncertainty, safeNextStep, falsePositiveNote },
+  sampleTxIds, confidence, confidenceLabel
+}
+```
+
+#### Detector 1 — Repeated near-identical amounts (`detectRepeatedAmounts`)
+- **Window:** last 45 minutes
+- **Rule:** bucket transactions by `round(amount / 100) × 100`; flag any bucket with **≥ 5 occurrences**
+- **Severity:** `high` if ≤ 2 distinct customers; otherwise `warning`
+- **Confidence formula:** `min(0.78, 0.45 + count·0.05 + (≤3 customers ? 0.12 : 0))`
+- **False-positive guard:** rounded-to-100 bucketing absorbs small variation; capped at 0.78 so even on salary day it's never "high"
+- **Always documents possible normal reasons:** Eid/salary disbursement, merchant batch settlement, single-employer payday
+
+#### Detector 2 — Velocity spike (`detectVelocitySpike`)
+- **Window:** last 30 min vs previous 30 min
+- **Rule:** require ≥ 10 recent txns **and** recent/previous **ratio ≥ 3.0×**
+- **Confidence:** `min(0.72, 0.40 + ratio·0.06)`
+- **Always documents possible normal reasons:** payday spike, ATM outage nearby, market closing rush
+- **Critical:** velocity alone is *never* treated as suspicious — the framework pairs it with amount pattern + context
+
+#### Detector 3 — Data-quality conflict (`detectDataConflict`)
+- **Rule:** flag **only** when (a) feed marked stale **and** latency > 60s, **or** (b) last sync > 4 minutes old
+- **Confidence:** `max(0.30, 0.85 − latencyMs/200000)` — explicitly *reduces* confidence so AI refuses to recommend action
+- **Purpose:** this is the safe-fallback trigger for Scenario C — better to dampen than to mislead
+
+#### Scanner loop (`runAnomalyScan`)
+- Iterates all 6 agents × 3 providers = **18 (agent, provider) pairs**
+- Runs all 3 detectors in `Promise.all` per pair (parallel)
+- Applies a **15-minute suppression window**: skip if a same-`(agent, provider, category)` alert was *resolved by a human* in the last 15 min
+- Returns the list of new findings to persist
+
+---
+
+### C. Suppression window — *"Don't nag humans"*
+
+**Module:** `src/lib/anomaly.ts` → `isSuppressed()`
+**Why:** repeated patterns on salary/Eid days cause false-positive spam after the first resolution.
+
+**Rule:** if a case with `(agentId, providerId, category)` was set to `status = "resolved"` in the last **15 minutes**, the same pattern is **not** re-fired. Forces a human re-trigger or escalation to surface it again.
+
+---
+
+### D. Live tick — *"The data should move"*
+
+**Module:** `src/lib/simulate.ts` → `simulationTick()`
+**Trigger:** Socket.io mini-service runs this every **~9 seconds**
+**Concurrent anomaly re-scan:** every **~35 seconds**
+
+**Per tick (per agent):**
+- 0–3 fresh transactions (random provider, random amount, 95% success)
+- Updates `agentProviderBalance.balance` (cash-in/out + cash increment/decrement)
+- Appends a new snapshot row for both cash and the affected provider
+- 18% chance to toggle a provider feed between fresh and stale (different latency + confidence)
+
+**Result:** the dashboard reflects a **drifting, live network** without manual intervention. Burn rates, shortage ETAs, and detector outputs all update as new transactions arrive.
+
+---
+
+### Design principles behind every module
+
+| Principle | How it shows up in the code |
+|-----------|------------------------------|
+| **Explainable** | Every detector returns `facts[]`, `sampleTx[]`, `possibleNormalReasons`, `uncertainty`, `safeNextStep`, and `falsePositiveNote`. |
+| **Conservative** | Confidence is **capped**, never exceeds 0.85 for data-quality issues, and never exceeds 0.78 for repeated-amount patterns. |
+| **Human-in-the-loop** | Detectors only **create alerts**. Routing, ack, escalation, and resolution are all human-driven role-gated actions that write audit rows. |
+| **Provider-boundary preserving** | Forecasts and detectors run **per (agent, provider)**. Provider e-money balances are never merged, summed, or compared in a way that crosses logical boundaries. |
+| **Bilingual & accessible** | Every alert has both `message` (English) and `messageBn` (Bengali) fields. AI explanations follow the same pattern. |
+| **Safe fallback** | Stale feed → recommendation paused. Missing data → "advice: do not act on a single provider figure." |
+
+---
+
+### Where to see each piece in the UI
+
+| Module | UI view |
+|--------|---------|
+| Forecast ETA + chart | **Unified Liquidity** |
+| Anomaly evidence + AI advisory | **Anomaly Review** |
+| Suppression + audit | **Coordination** + **Audit Trail** |
+| Live tick broadcasting | **Command Center** (auto-refreshes) |
+| Measured analytics + load test | **Metrics & Validation** |
+
+---
+
+### How to extend with a new detector
+
+1. Add a new async function in `src/lib/anomaly.ts` returning `DetectedAnomaly | null`:
+   ```ts
+   export async function detectOffHoursActivity(agentId, providerId) { ... }
+   ```
+2. Add it to the `Promise.all` block in `runAnomalyScan()`.
+3. Add the matching `isSuppressed(...)` check to honour the 15-minute window.
+4. No UI changes needed — the anomaly card already renders from evidence.
+
+---
+
 ## 🎬 Demo Scenarios (one-paragraph each)
 
 - **Scenario A — Hidden Provider Shortage.** The aggregate KPI shows green across the network. But if you drill into one outlet, Rocket's e-money is projected to cross the 20% threshold in 38 minutes. The detector flags this and routes it to the outlet owner. *Watch the Confidence column in the Unified Liquidity view — it should turn amber for Rocket only.*
@@ -296,39 +608,35 @@ PORT=3000
 
 ---
 
-## 🧰 Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Framework** | Next.js 16 (App Router) + TypeScript 5 |
-| **Styling** | Tailwind CSS 4 + shadcn/ui (New York) |
-| **Database** | Prisma ORM + SQLite |
-| **Realtime** | Socket.io mini-service (port 3001) |
-| **Charts** | Recharts |
-| **State** | Zustand (client) + TanStack Query patterns |
-| **AI** | z-ai-web-dev-sdk (LLM chat, TTS, vision) |
-| **Icons** | Lucide React |
+## 15. Limitations and Future Work
 
----
+### Current Prototype Limitations
 
-## 📜 Hackathon Deliverables Checklist
+- Uses synthetic data only.
+- SQLite demo database is not intended for production persistence on Vercel.
+- No production provider API integration.
+- AI assistance is advisory only and depends on server-side API key availability.
+- Forecasting is explainable and deterministic; it is not a production liquidity risk model.
+- Anomaly detection is evidence-led and intentionally conservative.
 
-- ✅ **Working prototype** — live multi-provider flow + alert coordination
-- ✅ **Source repository** — this README, setup steps, sample data, env examples
-- ✅ **Architecture diagram** — see "Architecture Diagram" above
-- ✅ **Data & simulation note** — see "Data & Simulation Note" above
-- ✅ **Validation evidence** — 6 measured metrics (≥3 required), see "Validation Evidence"
-- ✅ **Responsible-design note** — see "Responsible-Design Note" above
-- ✅ **Alert case study export** — Markdown, from Coordination view
-- ✅ **At least 2 provider contexts** — 3 included (bKash · Nagad · Rocket)
-- ✅ **Shared cash + provider-specific balances** — yes
-- ✅ **Forward-looking liquidity insight** — yes (60-min forecast)
-- ✅ **Anomaly category with evidence** — yes (facts + sample txns + uncertainty)
-- ✅ **Human-review & careful risk language** — yes ("unusual" not "fraud")
-- ✅ **Alert routing, ownership, ack, escalation, resolution** — yes
-- ✅ **Failure / uncertainty / false-positive considerations** — yes (Scenario C)
-- ✅ **Safety, privacy, boundaries, limitations stated** — yes
+### Future Improvements
+
+- Persistent Postgres deployment.
+- Stronger authentication and organization-level RBAC.
+- Provider-approved API integration after compliance review.
+- More robust historical forecasting models.
+- Better false-positive benchmarking across holiday, salary-day, and local-event scenarios.
+- More complete load testing and observability.
 
 ---
 
-*Built for the Codex Community Hackathon · bKash presents SUST CSE Carnival 2026.*
+## 16. Final Safety Statement
+
+SALI detects, explains, and coordinates — but it never accuses, transfers, blocks, freezes, or controls money.
+
+It is a practical, measurable, and responsible hackathon prototype for safer multi-provider agent operations.
+
+---
+
+**Built for Codex Community Hackathon · bKash presents SUST CSE Carnival 2026**
