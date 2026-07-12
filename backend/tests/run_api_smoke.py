@@ -91,8 +91,8 @@ async def main() -> None:
             json=[
                 {
                     "external_event_id": "API-SMOKE-1",
-                    "agent_code": "AG-1001",
-                    "provider_code": "PROVIDER_A",
+                    "agent_code": "AG-DHM-003",
+                    "provider_code": "bkash",
                     "transaction_type": "cash_in",
                     "amount": "500.00",
                     "status": "success",
@@ -101,8 +101,8 @@ async def main() -> None:
                 },
                 {
                     "external_event_id": "API-SMOKE-BAD",
-                    "agent_code": "AG-1001",
-                    "provider_code": "PROVIDER_A",
+                    "agent_code": "AG-DHM-003",
+                    "provider_code": "bkash",
                     "transaction_type": "cash_in",
                     "amount": "-1",
                     "status": "success",

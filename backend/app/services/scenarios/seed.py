@@ -40,9 +40,9 @@ def build_transaction_rows(
         )
 
     if spec.code == "baseline":
-        for i in range(12):
+        for i in range(18):
             add(
-                i % 2,
+                i % len(providers),
                 TransactionType.CASH_IN if i % 2 == 0 else TransactionType.CASH_OUT,
                 500 + i * 20,
                 55 - i * 4,
@@ -58,6 +58,14 @@ def build_transaction_rows(
                 450 + i * 13,
                 50 - i * 4,
                 f"SYN-B-{i:03}",
+            )
+        for i in range(8):
+            add(
+                2,
+                TransactionType.CASH_OUT if i % 3 else TransactionType.CASH_IN,
+                520 + i * 17,
+                48 - i * 5,
+                f"SYN-RKT-A-{i:03}",
             )
     elif spec.code == "B":
         for i in range(22):
@@ -87,14 +95,18 @@ def build_transaction_rows(
                 TransactionStatus.FAILED,
                 sequence=200 + i,
             )
+        for i in range(6):
+            add(2, TransactionType.CASH_IN, 650, 35 - i * 4, f"SYN-RKT-B-{i:03}", sequence=300 + i)
     elif spec.code == "C":
-        for i in range(12):
-            add(i % 2, TransactionType.CASH_IN, 800, 55 - i * 4, f"SYN-DQ-{i:03}")
+        for i in range(15):
+            add(i % len(providers), TransactionType.CASH_IN, 800, 55 - i * 3, f"SYN-DQ-{i:03}")
     elif spec.code == "D":
         for i in range(20):
             add(0, TransactionType.CASH_IN, 1100, 48 - i * 2, f"SYN-WORK-{i:03}")
         for i in range(8):
             add(1, TransactionType.CASH_OUT, 500, 40 - i * 4, f"SYN-NORMAL-{i:03}")
+        for i in range(8):
+            add(2, TransactionType.CASH_OUT, 440, 44 - i * 4, f"SYN-ROCKET-WORK-{i:03}")
     return rows
 
 
@@ -104,7 +116,7 @@ def derive_balances(
     """Apply successful transactions to opening balances.
 
     Returns ``(provider_balances, cash_balance)``. For scenario C, an intentional
-    7,000 BDT discrepancy is injected into Provider B's reported balance so the
+    7,000 BDT discrepancy is injected into Nagad's reported balance so the
     ledger-balance conflict detector has something to flag.
     """
     provider_values = list(spec.provider_opening)

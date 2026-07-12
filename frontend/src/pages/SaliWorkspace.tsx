@@ -30,10 +30,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
-  Cell,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -172,6 +169,14 @@ const ROLE_VIEWS: Record<Role, ViewKey[]> = {
   admin: NAV.map((item) => item.key),
 };
 
+const PROVIDERS: Record<string, { label: string; color: string; capacity: number }> = {
+  bkash: { label: "bKash", color: "#E2136E", capacity: 500000 },
+  nagad: { label: "Nagad", color: "#EC1C24", capacity: 500000 },
+  rocket: { label: "Rocket", color: "#7B2FF7", capacity: 500000 },
+  PROVIDER_A: { label: "bKash", color: "#E2136E", capacity: 500000 },
+  PROVIDER_B: { label: "Nagad", color: "#EC1C24", capacity: 500000 },
+};
+
 function money(value: string | number | null | undefined) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "Unavailable";
   return new Intl.NumberFormat("en-US", {
@@ -195,6 +200,10 @@ function minutes(value: string | number | null | undefined) {
 
 function severityRank(severity: string) {
   return { critical: 0, high: 1, medium: 2, watch: 3, data_issue: 4 }[severity] ?? 5;
+}
+
+function providerInfo(code: string) {
+  return PROVIDERS[code] ?? { label: code, color: "#38bdf8", capacity: 500000 };
 }
 
 export function SaliWorkspace() {
@@ -296,6 +305,13 @@ export function SaliWorkspace() {
   const title = NAV.find((item) => item.key === view)?.label ?? "SALI";
   const openAlerts = alertList.filter((alert) => alert.status !== "resolved");
   const critical = openAlerts.filter((alert) => ["critical", "high"].includes(alert.severity));
+  const providerTotal = agentList.reduce(
+    (sum, agent) => sum + Object.values(agent.balances.providers).reduce((inner, value) => inner + Number(value), 0),
+    0,
+  );
+  const avgConfidence = openAlerts.length
+    ? openAlerts.reduce((sum, alert) => sum + Number(alert.confidence), 0) / openAlerts.length
+    : 1;
 
   return (
     <div className="sali-shell">
@@ -341,6 +357,11 @@ export function SaliWorkspace() {
                 ? `Scenario ${demo.data.active_scenario.code}: ${demo.data.active_scenario.label}`
                 : "No scenario active"}
             </span>
+            {selectedAgent && (
+              <span className="sali-scenario outlet-pill">
+                {selectedAgent.code} {selectedAgent.area}
+              </span>
+            )}
             <button className="button ghost" onClick={() => setCommandOpen(true)}>
               <Search size={16} />
               Command
@@ -365,21 +386,17 @@ export function SaliWorkspace() {
         <section className="sali-kpi-strip">
           <Kpi label="Active agents" value={agentList.length} detail="Synthetic outlets" />
           <Kpi label="Open alerts" value={openAlerts.length} detail={`${critical.length} high priority`} />
+          <Kpi label="Open cases" value={openAlerts.length} detail="Alert workflow queue" />
           <Kpi
             label="Shared cash"
             value={money(agentList.reduce((sum, agent) => sum + Number(agent.balances.cash ?? 0), 0))}
             detail="Never merged with providers"
           />
+          <Kpi label="E-money" value={money(providerTotal)} detail="bKash + Nagad + Rocket" />
           <Kpi
-            label="Earliest pressure"
-            value={minutes(
-              Math.min(
-                ...agentList
-                  .map((agent) => agent.nearest_shortage_minutes)
-                  .filter((item): item is number => item !== null),
-              ),
-            )}
-            detail="Forecasted advisory ETA"
+            label="Avg confidence"
+            value={pct(avgConfidence)}
+            detail="Evidence quality"
           />
         </section>
 
@@ -389,7 +406,13 @@ export function SaliWorkspace() {
           ) : (
             <>
               {view === "command" && (
-                <CommandView agents={agentList} alerts={alertList} setView={setView} />
+                <CommandView
+                  agents={agentList}
+                  alerts={alertList}
+                  activeScenarioCode={demo.data?.active_scenario?.code ?? null}
+                  role={user?.role ?? "operations"}
+                  setView={setView}
+                />
               )}
               {view === "liquidity" && (
                 <LiquidityView agent={selectedAgent} setSelectedAgentId={setSelectedAgentId} agents={agentList} />
@@ -449,10 +472,14 @@ function LoadingState() {
 function CommandView({
   agents,
   alerts,
+  activeScenarioCode,
+  role,
   setView,
 }: {
   agents: Agent[];
   alerts: Alert[];
+  activeScenarioCode: string | null;
+  role: Role;
   setView: (view: ViewKey) => void;
 }) {
   const sortedAlerts = [...alerts].sort((a, b) => severityRank(a.severity) - severityRank(b.severity));
@@ -463,25 +490,60 @@ function CommandView({
         totals[code] = (totals[code] ?? 0) + Number(value);
       });
     });
-    return Object.entries(totals).map(([provider, value]) => ({ provider, value }));
+    return Object.entries(totals).map(([provider, value]) => ({ provider, value, ...providerInfo(provider) }));
   }, [agents]);
+  const scenarioCards = [
+    { code: "A", title: "Hidden bKash shortage" },
+    { code: "B", title: "Cash pressure + unusual activity" },
+    { code: "C", title: "Nagad feed delayed / conflicting" },
+    { code: "D", title: "Coordinated closure" },
+  ];
   return (
     <div className="sali-grid two">
-      <section className="sali-panel">
-        <PanelTitle icon={Activity} title="Network pulse" sub="Zip-style command center overview" />
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={providerTotals}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="provider" />
-            <YAxis />
-            <Tooltip formatter={(value) => money(Number(value))} />
-            <Bar dataKey="value" radius={[5, 5, 0, 0]}>
-              {providerTotals.map((_, index) => (
-                <Cell key={index} fill={["#10b981", "#3b82f6", "#f59e0b"][index % 3]} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      <section className="sali-panel wide role-suggestion">
+        <PanelTitle
+          icon={role === "agent" ? MapPin : ShieldAlert}
+          title={role === "agent" ? "Your outlet" : "Suggested actions"}
+          sub="Role-specific guidance from the SALI reference demo"
+        />
+        <RoleSuggestion role={role} alertCount={alerts.filter((alert) => alert.status !== "resolved").length} setView={setView} />
+      </section>
+      <section className="sali-panel wide scenario-spotlight">
+        <PanelTitle icon={Sparkles} title="Demo scenarios - live" sub={`${alerts.filter((alert) => alert.status !== "resolved").length} active across the network`} />
+        <div className="scenario-strip">
+          {scenarioCards.map((scenario) => {
+            const active = activeScenarioCode === scenario.code;
+            const sampleAlert = alerts.find((alert) => alert.status !== "resolved");
+            return (
+              <button key={scenario.code} onClick={() => setView("anomalies")} className={active ? "active" : ""}>
+                <small>Scenario {scenario.code}</small>
+                <span>{scenario.title}</span>
+                {active && <b>{sampleAlert ? `${sampleAlert.status} - ${sampleAlert.severity}` : "active"}</b>}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+      <section className="sali-panel wide">
+        <PanelTitle icon={Activity} title="Provider-level Pressure" sub="Aggregate e-money position per provider - boundaries are kept separate, never merged." />
+        <div className="provider-pressure-grid">
+          {providerTotals.map((provider) => {
+            const capacity = provider.capacity * Math.max(1, agents.length);
+            const ratio = Math.max(0, Math.min(1, provider.value / capacity));
+            return (
+              <article key={provider.provider} style={{ borderColor: `${provider.color}66` }}>
+                <div>
+                  <span className="provider-dot" style={{ background: provider.color }} />
+                  <strong>{provider.label}</strong>
+                  <small>{agents.length} agents</small>
+                </div>
+                <b>{money(provider.value)} <small>/ {money(capacity)} BDT</small></b>
+                <i><span style={{ width: `${Math.max(4, ratio * 100)}%`, background: provider.color }} /></i>
+                <p>0 low <em>1 stale</em> <em>{alerts.length} alerts</em></p>
+              </article>
+            );
+          })}
+        </div>
       </section>
       <section className="sali-panel">
         <PanelTitle icon={AlertOctagon} title="Live alert feed" sub="Severity sorted queue" />
@@ -512,14 +574,74 @@ function CommandView({
           ))}
         </div>
       </section>
-      <section className="sali-panel wide role-suggestion">
-        <PanelTitle icon={ShieldAlert} title="Role-specific next step" sub="The reference demo changes guidance by role" />
-        <p>
-          Use your allowed views from the sidebar. Agents see their outlet context, operations coordinate
-          the response, risk reviews evidence without declaring wrongdoing, management sees aggregate
-          readiness, and admin controls scenarios.
-        </p>
-      </section>
+    </div>
+  );
+}
+
+function RoleSuggestion({
+  role,
+  alertCount,
+  setView,
+}: {
+  role: Role;
+  alertCount: number;
+  setView: (view: ViewKey) => void;
+}) {
+  const copy: Record<Role, { title: string; items: { text: string; target?: ViewKey; urgent?: boolean }[] }> = {
+    agent: {
+      title: "Your outlet",
+      items: [
+        { text: `You have ${alertCount} open alert(s) on your outlet. Review and acknowledge the ones that need attention.`, target: "anomalies", urgent: alertCount > 0 },
+        { text: "Check your cash plus bKash, Nagad, and Rocket balances. If a shortage is projected, acknowledge and escalate it.", target: "liquidity" },
+        { text: "You can acknowledge alerts and escalate to Field Ops. You cannot assign or resolve operational cases." },
+      ],
+    },
+    operations: {
+      title: "Field operations",
+      items: [
+        { text: `${alertCount} alert(s) need coordination. Claim, acknowledge, contact the outlet, and escalate when approved support is needed.`, target: "coordination", urgent: alertCount > 0 },
+        { text: "Use Network Hotspots to find nearby approved support options. No automatic agent-to-agent transfer is suggested.", target: "network" },
+        { text: "Use What-If to model salary day or Eid demand before arranging human-reviewed support.", target: "whatif" },
+      ],
+    },
+    risk: {
+      title: "Risk review",
+      items: [
+        { text: "Review unusual activity evidence. The app never declares fraud or guilt.", target: "anomalies", urgent: alertCount > 0 },
+        { text: "Use Relationship Graph to inspect repeated synthetic identifiers across providers.", target: "relationships" },
+        { text: "Document uncertainty and recommendations for human review." },
+      ],
+    },
+    management: {
+      title: "Management overview",
+      items: [
+        { text: "Review aggregate readiness, alert pressure, and service risk without customer-level detail.", target: "metrics" },
+        { text: "Use Network Hotspots for area-level service pressure.", target: "network" },
+        { text: "Operational decisions remain with assigned operations teams." },
+      ],
+    },
+    admin: {
+      title: "Demo administrator",
+      items: [
+        { text: "Load Scenario A-D and verify bKash, Nagad, Rocket boundaries remain visible.", target: "simulation" },
+        { text: "Use the assistant and metrics panels during the demo walkthrough.", target: "assistant" },
+        { text: "Admin can access every synthetic view for judging and QA." },
+      ],
+    },
+  };
+  const selected = copy[role];
+  return (
+    <div>
+      <span className="role-title">{selected.title}</span>
+      <div className="role-lines">
+        {selected.items.map((item, index) => (
+          <p key={index}>
+            <span className={item.urgent ? "live-dot urgent" : ""} />
+            {item.text}
+            {item.target && <button onClick={() => setView(item.target!)}>Go -&gt;</button>}
+          </p>
+        ))}
+      </div>
     </div>
   );
 }
@@ -535,11 +657,12 @@ function LiquidityView({
 }) {
   const detail = useQuery({
     queryKey: ["sali-detail", agent?.id],
-    queryFn: () => api<{ forecasts: Forecast[]; providers: { code: string; name: string; balance: string; quality_status: string }[]; shared_cash: { balance: string; quality_status: string } | null }>(`/agents/${agent?.id}/overview`),
+    queryFn: () => api<{ forecasts: Forecast[]; providers: { id: string; code: string; name: string; balance: string; quality_status: string }[]; shared_cash: { balance: string; quality_status: string } | null }>(`/agents/${agent?.id}/overview`),
     enabled: Boolean(agent),
   });
+  const providerById = new Map((detail.data?.providers ?? []).map((provider) => [provider.id, provider.name]));
   const chart = (detail.data?.forecasts ?? []).map((forecast) => ({
-    name: forecast.resource_type === "shared_cash" ? "cash" : forecast.provider_id?.slice(0, 4) ?? "provider",
+    name: forecast.resource_type === "shared_cash" ? "Cash" : providerById.get(forecast.provider_id ?? "") ?? "Provider",
     current: Number(forecast.current_balance),
     buffer: Number(forecast.minimum_buffer),
     eta: forecast.shortage_minutes ? Number(forecast.shortage_minutes) : null,

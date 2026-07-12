@@ -2,7 +2,7 @@
 
 1. **Problem — 45 seconds:** explain one shared cash reserve and non-interchangeable provider e-money.
 2. **Dashboard — 60 seconds:** sign in as Operations; show provider separation, freshness, nearest pressure, and queue.
-3. **Scenario A — 75 seconds:** sign out, sign in as Admin, load A, open Rahman Store, and show Provider A pressure and confidence.
+3. **Scenario A — 75 seconds:** sign out, sign in as Admin, load A, open Dhanmondi Mobile Point, and show bKash pressure and confidence.
 4. **Scenario B — 90 seconds:** load B; distinguish shared-cash pressure from unusual repeated activity. Emphasize that the pattern is not proof of fraud.
 5. **Scenario C — 60 seconds:** show missing/conflicting feeds, confidence deductions, and the suppressed precise forecast.
 6. **Scenario D — 90 seconds:** as Operations, claim, acknowledge, note, and escalate. Sign out; sign in as Risk; start progress, resolve, and show the timeline.

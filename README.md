@@ -201,12 +201,12 @@ Do not reuse these credentials outside the synthetic demonstration environment.
 
 | Scenario | Demonstrates | Expected result |
 | --- | --- | --- |
-| A | Hidden provider shortage | Provider A e-money pressure despite healthy combined value |
+| A | Hidden provider shortage | bKash e-money pressure while Nagad, Rocket, and shared cash remain visibly separate |
 | B | Cash pressure and unusual activity | Shared-cash warning plus repeated-pattern evidence |
 | C | Missing and conflicting feeds | Confidence reduction and suppression of precise shortage time |
 | D | Coordinated response | Claim, acknowledge, note, escalate, review, resolve, and audit timeline |
 
-Scenario definitions are fixed and repeatable. Their labels are under [`data/scenarios`](data/scenarios), while generation and calculation live in `backend/app/services/scenarios.py`.
+Scenario definitions are fixed and repeatable. Their labels are under [`data/scenarios`](data/scenarios), while generation and calculation live in the `backend/app/services/scenarios/` package.
 
 ## Development setup
 

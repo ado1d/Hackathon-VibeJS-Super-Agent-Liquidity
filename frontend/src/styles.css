@@ -1307,7 +1307,7 @@ td small {
 .sali-topbar h1 { margin: 3px 0 0; font-size: 25px; }
 .sali-top-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .sali-scenario { padding: 8px 10px; border-radius: 7px; border: 1px solid rgb(255 255 255 / 10%); background: rgb(38 44 58 / 75%); color: #cbd5e1; font-size: 12px; }
-.sali-kpi-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.sali-kpi-strip { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
 .sali-kpi, .sali-panel { position: relative; border: 1px solid rgb(255 255 255 / 9%); border-radius: 12px; background: linear-gradient(180deg, rgb(35 41 55 / 90%), rgb(27 32 43 / 88%)); box-shadow: 0 18px 50px rgb(0 0 0 / 22%); backdrop-filter: blur(8px); }
 .sali-kpi::before, .sali-panel::before { content: ""; position: absolute; inset: 0 0 auto; height: 1px; border-radius: inherit; background: linear-gradient(90deg, transparent, rgb(255 255 255 / 14%), transparent); pointer-events: none; }
 .sali-kpi { padding: 14px; }
@@ -1375,6 +1375,29 @@ button.sali-list-row { cursor: pointer; }
 .loading-panel { display: flex; align-items: center; gap: 10px; }
 .role-suggestion { border-left: 3px solid rgb(16 185 129 / 55%); }
 .role-suggestion p { margin: 0; color: #cbd5e1; line-height: 1.7; }
+.outlet-pill { border-color: rgb(16 185 129 / 32%); color: #6ee7b7; background: rgb(16 185 129 / 10%); }
+.role-title { display: inline-flex; margin-bottom: 10px; color: #34d399; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; }
+.role-lines { display: grid; gap: 8px; }
+.role-lines p { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; align-items: start; gap: 8px; }
+.role-lines p > span { width: 6px; height: 6px; margin-top: 10px; border-radius: 999px; background: #64748b; }
+.role-lines p > span.urgent { background: #fb7185; }
+.role-lines button { border: 0; background: transparent; color: #34d399; font-size: 12px; font-weight: 700; cursor: pointer; }
+.scenario-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.scenario-strip button { display: grid; gap: 8px; min-height: 92px; border: 1px solid rgb(255 255 255 / 9%); border-radius: 10px; padding: 12px; background: rgb(15 23 42 / 30%); color: #94a3b8; text-align: left; cursor: pointer; }
+.scenario-strip button.active { border-color: rgb(167 139 250 / 60%); background: rgb(88 28 135 / 18%); color: #f8fafc; }
+.scenario-strip small { font-size: 10px; font-weight: 800; text-transform: uppercase; color: #a1a1aa; }
+.scenario-strip b { color: #fde047; font-size: 11px; }
+.provider-pressure-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.provider-pressure-grid article { display: grid; gap: 12px; border: 1px solid; border-radius: 12px; padding: 16px; background: rgb(15 23 42 / 26%); }
+.provider-pressure-grid article div { display: flex; align-items: center; gap: 10px; }
+.provider-pressure-grid article div small { margin-left: auto; border: 1px solid rgb(255 255 255 / 12%); border-radius: 6px; padding: 3px 8px; color: #f8fafc; background: rgb(255 255 255 / 5%); }
+.provider-pressure-grid b { font-size: 22px; }
+.provider-pressure-grid b small { color: #94a3b8; font-size: 12px; font-weight: 500; }
+.provider-pressure-grid i { display: block; height: 8px; overflow: hidden; border-radius: 999px; background: rgb(255 255 255 / 7%); }
+.provider-pressure-grid i span { display: block; height: 100%; border-radius: inherit; }
+.provider-pressure-grid p { margin: 0; display: flex; gap: 12px; color: #9ca3af; font-size: 12px; }
+.provider-pressure-grid em { color: #fde047; font-style: normal; }
+.provider-dot { width: 12px; height: 12px; border-radius: 999px; }
 .spin { animation: sali-spin 1s linear infinite; }
 @keyframes sali-spin { to { transform: rotate(360deg); } }
 
@@ -1382,13 +1405,13 @@ button.sali-list-row { cursor: pointer; }
   .sali-shell { grid-template-columns: 1fr; }
   .sali-sidebar { position: relative; height: auto; }
   .sali-nav { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
-  .sali-kpi-strip, .sali-grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .sali-kpi-strip, .sali-grid.two, .provider-pressure-grid, .scenario-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 @media (max-width: 760px) {
   .sali-main { padding: 14px; }
   .sali-topbar, .tour-banner, .assistant-compose { display: grid; grid-template-columns: 1fr; }
-  .sali-kpi-strip, .sali-grid.two, .sali-review-card { grid-template-columns: 1fr; }
+  .sali-kpi-strip, .sali-grid.two, .sali-review-card, .provider-pressure-grid, .scenario-strip { grid-template-columns: 1fr; }
   .chat-bubble { max-width: 100%; }
 }
 

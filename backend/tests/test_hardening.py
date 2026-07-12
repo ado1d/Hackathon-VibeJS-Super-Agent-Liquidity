@@ -102,8 +102,8 @@ async def test_transaction_import_appends_snapshots_without_mutating_history(ses
         [
             {
                 "external_event_id": "IMPORT-IMMUTABLE-1",
-                "agent_code": "AG-1001",
-                "provider_code": "PROVIDER_A",
+                "agent_code": "AG-DHM-003",
+                "provider_code": "bkash",
                 "transaction_type": "cash_out",
                 "amount": "250.00",
                 "status": "success",

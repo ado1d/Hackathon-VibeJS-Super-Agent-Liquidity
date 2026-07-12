@@ -59,7 +59,7 @@ export function AgentLiquidityTable({ agents }: AgentLiquidityTableProps) {
                   <div className="balance-minis">
                     <span>Cash <strong>{formatMoney(agent.balances.cash)}</strong></span>
                     {Object.entries(agent.balances.providers).map(([code, balance]) => (
-                      <span key={code}>{code.replace("PROVIDER_", "Provider ")} <strong>{formatMoney(balance)}</strong></span>
+                      <span key={code}>{providerLabel(code)} <strong>{formatMoney(balance)}</strong></span>
                     ))}
                   </div>
                 </td>
@@ -87,6 +87,17 @@ export function AgentLiquidityTable({ agents }: AgentLiquidityTableProps) {
 function formatMoney(value: number | null) {
   if (value == null) return "—";
   return new Intl.NumberFormat("en-BD", { notation: "compact" }).format(value);
+}
+
+function providerLabel(code: string) {
+  const labels: Record<string, string> = {
+    bkash: "bKash",
+    nagad: "Nagad",
+    rocket: "Rocket",
+    PROVIDER_A: "bKash",
+    PROVIDER_B: "Nagad",
+  };
+  return labels[code] ?? code;
 }
 
 function PressureSparkline({ agent }: { agent: Agent }) {

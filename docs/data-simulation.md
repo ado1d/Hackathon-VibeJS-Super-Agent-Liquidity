@@ -15,7 +15,7 @@ Scenario loading holds a PostgreSQL advisory lock, clears only current operation
 ## Expected behavior
 
 - **Baseline:** balanced demand with no designed shortage.
-- **A:** Provider A e-money reaches its buffer while Provider B and total value remain healthy.
+- **A:** bKash e-money reaches its buffer while Nagad, Rocket, and shared cash remain visibly separate.
 - **B:** cash-out demand pressures shared cash and repeated near-identical transactions require review.
 - **C:** a missing feed and a ledger/balance conflict suppress precise forecasting.
 - **D:** a high-priority operations alert is ready for claim, acknowledgement, note, escalation, and closure.

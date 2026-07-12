@@ -7,8 +7,8 @@ const scenarios = [
   {
     code: "A",
     title: "Hidden provider shortage",
-    detail: "Healthy combined value masks Provider A e-money pressure.",
-    expected: "Provider-specific forecast before disruption",
+    detail: "Healthy total value masks bKash e-money pressure.",
+    expected: "bKash-specific forecast before disruption",
   },
   {
     code: "B",
